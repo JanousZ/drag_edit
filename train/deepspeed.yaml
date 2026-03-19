@@ -1,0 +1,16 @@
+compute_environment: LOCAL_MACHINE
+deepspeed_config:
+  deepspeed_config_file: ./train/deepspeed_config.json
+  zero3_init_flag: false           #本项目使用ds2，设为false
+distributed_type: DEEPSPEED
+downcast_bf16: 'no'     # DeepSpeed 内部有自己的混合精度管理逻辑,这里accelerate的配置填no
+dynamo_backend: 'NO'
+fsdp_config: {}    # 不选择fsdp
+machine_rank: 0
+main_training_function: main
+megatron_lm_config: {}
+num_machines: 1
+num_processes: 3  # Number of GPUs
+rdzv_backend: static
+same_network: true
+use_cpu: false

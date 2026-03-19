@@ -1,0 +1,171 @@
+INFO:__main__:Distributed environment: FSDP  Backend: nccl
+Num processes: 3
+Process index: 2
+Local process index: 2
+Device: cuda:2
+
+Mixed precision type: no
+
+Loading checkpoint shards:   0%|          | 0/3 [00:00<?, ?it/s]INFO:__main__:Distributed environment: FSDP  Backend: nccl
+Num processes: 3
+Process index: 1
+Local process index: 1
+Device: cuda:1
+
+Mixed precision type: no
+
+Loading checkpoint shards:   0%|          | 0/3 [00:00<?, ?it/s]wandb: Currently logged in as: 1415613218 (1415613218-zhejiang-university) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.19.10
+wandb: Run data is saved locally in /home/yanzhang/kontext_train_ds2/wandb/run-20260124_065001-unul3426
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run revived-fog-57
+wandb: ⭐️ View project at https://wandb.ai/1415613218-zhejiang-university/ds2_kontext
+wandb: 🚀 View run at https://wandb.ai/1415613218-zhejiang-university/ds2_kontext/runs/unul3426
+INFO:__main__:Distributed environment: FSDP  Backend: nccl
+Num processes: 3
+Process index: 0
+Local process index: 0
+Device: cuda:0
+
+Mixed precision type: no
+
+Loading checkpoint shards:   0%|          | 0/3 [00:00<?, ?it/s]Loading checkpoint shards:  33%|███▎      | 1/3 [00:12<00:25, 12.69s/it]Loading checkpoint shards:  33%|███▎      | 1/3 [00:10<00:21, 10.91s/it]Loading checkpoint shards:  33%|███▎      | 1/3 [00:12<00:25, 12.70s/it]Loading checkpoint shards:  67%|██████▋   | 2/3 [00:20<00:09,  9.59s/it]Loading checkpoint shards:  67%|██████▋   | 2/3 [00:20<00:09,  9.77s/it]Loading checkpoint shards:  67%|██████▋   | 2/3 [00:18<00:08,  8.98s/it]Loading checkpoint shards: 100%|██████████| 3/3 [00:22<00:00,  6.43s/it]Loading checkpoint shards: 100%|██████████| 3/3 [00:22<00:00,  7.59s/it]
+Loading checkpoint shards: 100%|██████████| 3/3 [00:23<00:00,  6.54s/it]Loading checkpoint shards: 100%|██████████| 3/3 [00:23<00:00,  7.70s/it]
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards: 100%|██████████| 2/2 [00:00<00:00, 654.29it/s]
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards: 100%|██████████| 2/2 [00:00<00:00, 653.17it/s]
+Loading checkpoint shards: 100%|██████████| 3/3 [00:21<00:00,  6.13s/it]Loading checkpoint shards: 100%|██████████| 3/3 [00:21<00:00,  7.09s/it]
+All model checkpoint weights were used when initializing FluxTransformer2DModel.
+
+All the weights of FluxTransformer2DModel were initialized from the model checkpoint at /mnt/disk1/models/FLUX.1-Kontext-dev.
+If your task is similar to the task the model of the checkpoint was trained on, you can already use FluxTransformer2DModel for predictions without further training.
+All model checkpoint weights were used when initializing AutoencoderKL.
+
+All the weights of AutoencoderKL were initialized from the model checkpoint at /mnt/disk1/models/FLUX.1-Kontext-dev.
+If your task is similar to the task the model of the checkpoint was trained on, you can already use AutoencoderKL for predictions without further training.
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.97s/it][rank1]:[W124 06:50:28.951145994 ProcessGroupNCCL.cpp:4715] [PG ID 0 PG GUID 0 Rank 1]  using GPU 1 as device used by this process is currently unknown. This can potentially cause a hang if this rank to GPU mapping is incorrect. You can pecify device_id in init_process_group() to force use of a particular device.
+[rank2]:[W124 06:50:28.979401472 ProcessGroupNCCL.cpp:4715] [PG ID 0 PG GUID 0 Rank 2]  using GPU 2 as device used by this process is currently unknown. This can potentially cause a hang if this rank to GPU mapping is incorrect. You can pecify device_id in init_process_group() to force use of a particular device.
+Loading checkpoint shards: 100%|██████████| 2/2 [00:07<00:00,  3.67s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:07<00:00,  3.71s/it]
+You set `add_prefix_space`. The tokenizer needs to be converted from the slow tokenizers
+[rank0]:[W124 06:50:35.638061889 ProcessGroupNCCL.cpp:4715] [PG ID 0 PG GUID 0 Rank 0]  using GPU 0 as device used by this process is currently unknown. This can potentially cause a hang if this rank to GPU mapping is incorrect. You can pecify device_id in init_process_group() to force use of a particular device.
+[rank1]: Traceback (most recent call last):
+[rank1]:   File "/home/yanzhang/kontext_train_ds2/./train/train_ds2_replace5k.py", line 329, in <module>
+[rank1]:     main()
+[rank1]:   File "/home/yanzhang/kontext_train_ds2/./train/train_ds2_replace5k.py", line 176, in main
+[rank1]:     dit, optimizer, dataloader= accelerator.prepare(dit, optimizer, dataloader)
+[rank1]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/accelerator.py", line 1398, in prepare
+[rank1]:     result = tuple(
+[rank1]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/accelerator.py", line 1399, in <genexpr>
+[rank1]:     self._prepare_one(obj, first_pass=True, device_placement=d) for obj, d in zip(args, device_placement)
+[rank1]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/accelerator.py", line 1272, in _prepare_one
+[rank1]:     return self.prepare_model(obj, device_placement=device_placement)
+[rank1]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/accelerator.py", line 1593, in prepare_model
+[rank1]:     model = FSDP(model, **kwargs)
+[rank1]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/fsdp/fully_sharded_data_parallel.py", line 499, in __init__
+[rank1]:     _init_param_handle_from_module(
+[rank1]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/fsdp/_init_utils.py", line 598, in _init_param_handle_from_module
+[rank1]:     _move_module_to_device(
+[rank1]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/fsdp/_init_utils.py", line 991, in _move_module_to_device
+[rank1]:     _move_states_to_device(params_to_move, bufs_to_move, device_from_device_id)
+[rank1]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/fsdp/_init_utils.py", line 1021, in _move_states_to_device
+[rank1]:     param.data = param.to(device_from_device_id)
+[rank1]: torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 144.00 MiB. GPU 1 has a total capacity of 47.40 GiB of which 6.25 MiB is free. Including non-PyTorch memory, this process has 47.39 GiB memory in use. Of the allocated memory 46.88 GiB is allocated by PyTorch, and 78.50 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+Traceback (most recent call last):
+  File "/home/yanzhang/kontext_train_ds2/./train/train_ds2_replace5k.py", line 329, in <module>
+    main()
+  File "/home/yanzhang/kontext_train_ds2/./train/train_ds2_replace5k.py", line 176, in main
+    dit, optimizer, dataloader= accelerator.prepare(dit, optimizer, dataloader)
+  File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/accelerator.py", line 1398, in prepare
+    result = tuple(
+  File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/accelerator.py", line 1399, in <genexpr>
+    self._prepare_one(obj, first_pass=True, device_placement=d) for obj, d in zip(args, device_placement)
+  File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/accelerator.py", line 1272, in _prepare_one
+    return self.prepare_model(obj, device_placement=device_placement)
+  File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/accelerator.py", line 1593, in prepare_model
+    model = FSDP(model, **kwargs)
+  File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/fsdp/fully_sharded_data_parallel.py", line 499, in __init__
+    _init_param_handle_from_module(
+  File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/fsdp/_init_utils.py", line 598, in _init_param_handle_from_module
+    _move_module_to_device(
+  File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/fsdp/_init_utils.py", line 991, in _move_module_to_device
+    _move_states_to_device(params_to_move, bufs_to_move, device_from_device_id)
+  File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/fsdp/_init_utils.py", line 1021, in _move_states_to_device
+    param.data = param.to(device_from_device_id)
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 144.00 MiB. GPU 0 has a total capacity of 47.40 GiB of which 22.25 MiB is free. Including non-PyTorch memory, this process has 47.37 GiB memory in use. Of the allocated memory 46.88 GiB is allocated by PyTorch, and 78.50 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/home/yanzhang/kontext_train_ds2/./train/train_ds2_replace5k.py", line 329, in <module>
+[rank0]:     main()
+[rank0]:   File "/home/yanzhang/kontext_train_ds2/./train/train_ds2_replace5k.py", line 176, in main
+[rank0]:     dit, optimizer, dataloader= accelerator.prepare(dit, optimizer, dataloader)
+[rank0]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/accelerator.py", line 1398, in prepare
+[rank0]:     result = tuple(
+[rank0]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/accelerator.py", line 1399, in <genexpr>
+[rank0]:     self._prepare_one(obj, first_pass=True, device_placement=d) for obj, d in zip(args, device_placement)
+[rank0]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/accelerator.py", line 1272, in _prepare_one
+[rank0]:     return self.prepare_model(obj, device_placement=device_placement)
+[rank0]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/accelerator.py", line 1593, in prepare_model
+[rank0]:     model = FSDP(model, **kwargs)
+[rank0]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/fsdp/fully_sharded_data_parallel.py", line 499, in __init__
+[rank0]:     _init_param_handle_from_module(
+[rank0]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/fsdp/_init_utils.py", line 598, in _init_param_handle_from_module
+[rank0]:     _move_module_to_device(
+[rank0]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/fsdp/_init_utils.py", line 991, in _move_module_to_device
+[rank0]:     _move_states_to_device(params_to_move, bufs_to_move, device_from_device_id)
+[rank0]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/fsdp/_init_utils.py", line 1021, in _move_states_to_device
+[rank0]:     param.data = param.to(device_from_device_id)
+[rank0]: torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 144.00 MiB. GPU 0 has a total capacity of 47.40 GiB of which 22.25 MiB is free. Including non-PyTorch memory, this process has 47.37 GiB memory in use. Of the allocated memory 46.88 GiB is allocated by PyTorch, and 78.50 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+[rank2]: Traceback (most recent call last):
+[rank2]:   File "/home/yanzhang/kontext_train_ds2/./train/train_ds2_replace5k.py", line 329, in <module>
+[rank2]:     main()
+[rank2]:   File "/home/yanzhang/kontext_train_ds2/./train/train_ds2_replace5k.py", line 176, in main
+[rank2]:     dit, optimizer, dataloader= accelerator.prepare(dit, optimizer, dataloader)
+[rank2]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/accelerator.py", line 1398, in prepare
+[rank2]:     result = tuple(
+[rank2]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/accelerator.py", line 1399, in <genexpr>
+[rank2]:     self._prepare_one(obj, first_pass=True, device_placement=d) for obj, d in zip(args, device_placement)
+[rank2]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/accelerator.py", line 1272, in _prepare_one
+[rank2]:     return self.prepare_model(obj, device_placement=device_placement)
+[rank2]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/accelerator.py", line 1593, in prepare_model
+[rank2]:     model = FSDP(model, **kwargs)
+[rank2]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/fsdp/fully_sharded_data_parallel.py", line 499, in __init__
+[rank2]:     _init_param_handle_from_module(
+[rank2]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/fsdp/_init_utils.py", line 598, in _init_param_handle_from_module
+[rank2]:     _move_module_to_device(
+[rank2]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/fsdp/_init_utils.py", line 991, in _move_module_to_device
+[rank2]:     _move_states_to_device(params_to_move, bufs_to_move, device_from_device_id)
+[rank2]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/fsdp/_init_utils.py", line 1021, in _move_states_to_device
+[rank2]:     param.data = param.to(device_from_device_id)
+[rank2]: torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 144.00 MiB. GPU 2 has a total capacity of 47.40 GiB of which 26.25 MiB is free. Including non-PyTorch memory, this process has 47.37 GiB memory in use. Of the allocated memory 46.88 GiB is allocated by PyTorch, and 78.50 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+W0124 06:50:42.653000 270933 site-packages/torch/distributed/elastic/multiprocessing/api.py:900] Sending process 271137 closing signal SIGTERM
+W0124 06:50:42.654000 270933 site-packages/torch/distributed/elastic/multiprocessing/api.py:900] Sending process 271139 closing signal SIGTERM
+E0124 06:50:43.619000 270933 site-packages/torch/distributed/elastic/multiprocessing/api.py:874] failed (exitcode: 1) local_rank: 1 (pid: 271138) of binary: /home/yanzhang/.conda/envs/omini/bin/python
+Traceback (most recent call last):
+  File "/home/yanzhang/.conda/envs/omini/bin/accelerate", line 8, in <module>
+    sys.exit(main())
+  File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/commands/accelerate_cli.py", line 48, in main
+    args.func(args)
+  File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/commands/launch.py", line 1179, in launch_command
+    multi_gpu_launcher(args)
+  File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/commands/launch.py", line 810, in multi_gpu_launcher
+    distrib_run.run(args)
+  File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/run.py", line 883, in run
+    elastic_launch(
+  File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/launcher/api.py", line 139, in __call__
+    return launch_agent(self._config, self._entrypoint, list(args))
+  File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/launcher/api.py", line 270, in launch_agent
+    raise ChildFailedError(
+torch.distributed.elastic.multiprocessing.errors.ChildFailedError: 
+============================================================
+./train/train_ds2_replace5k.py FAILED
+------------------------------------------------------------
+Failures:
+  <NO_OTHER_FAILURES>
+------------------------------------------------------------
+Root Cause (first observed failure):
+[0]:
+  time      : 2026-01-24_06:50:42
+  host      : gpu-server-3x6000
+  rank      : 1 (local_rank: 1)
+  exitcode  : 1 (pid: 271138)
+  error_file: <N/A>
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+============================================================

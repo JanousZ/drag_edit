@@ -1,0 +1,13 @@
+{
+  "backward_prefetch": "BACKWARD_PRE",
+  "cpu_offload": false,
+  "forward_prefetch": false,
+  "limit_all_gathers": true,
+  "memory_efficient_model_loading": true,
+  "min_num_params": 0,
+  "offload_params": false,
+  "sharding_strategy": "FULL_SHARD",
+  "transformer_auto_wrap_policy": "TRANSFORMER_BASED_WRAP",
+  "use_orig_params": false,
+  "meta_device_init": true
+}
