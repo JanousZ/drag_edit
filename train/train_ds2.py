@@ -8,7 +8,7 @@ from torch.optim import AdamW
 from accelerate import Accelerator
 from peft import get_peft_model, LoraConfig
 import argparse
-from my_datasets.motionedit import MotionEditDataset
+from my_datasets.dragdataset import DragDataset, dd_collate_fn
 from torch.utils.data import DataLoader
 import os
 import logging
@@ -23,7 +23,7 @@ from transformers import (
     CLIPTokenizer,
     CLIPVisionModelWithProjection,
     T5EncoderModel,
-    T5TokenizerFast,
+    T5Tokenizer,
     is_wandb_available
 )
 from safetensors.torch import save_file, load_file
@@ -31,6 +31,8 @@ import shutil
 from utils.infer_utils import _encode_prompt_with_clip, _encode_prompt_with_t5
 import os
 import math
+from module.point import PointsMapEncoder, get_points_map_embedding
+import json
 
 os.environ["WANDB_API_KEY"] = "86ab58d2a525a27f7a60ab5fa492d36bdf932255"
 
@@ -122,8 +124,12 @@ def main():
     vae = AutoencoderKL.from_pretrained(base_model, subfolder="vae")
     t5 = T5EncoderModel.from_pretrained(base_model, subfolder="text_encoder_2")
     clip = CLIPTextModel.from_pretrained(base_model, subfolder="text_encoder")
-    t5_tokenizer = T5TokenizerFast.from_pretrained(base_model, subfolder="tokenizer_2")
+    t5_tokenizer = T5Tokenizer.from_pretrained(base_model, subfolder="tokenizer_2")
     clip_tokenizer = CLIPTokenizer.from_pretrained(base_model, subfolder="tokenizer")
+    points_map_encoder_config_path = "/home/yanzhang/drag_edit/module/pme_config.json"
+    with open(points_map_encoder_config_path, "r") as f:
+        points_map_encoder_config = json.load(f)
+    points_map_encoder = PointsMapEncoder(**points_map_encoder_config)
 
     t5 = t5.to(accelerator.device)
     clip = clip.to(accelerator.device)
@@ -133,11 +139,13 @@ def main():
     t5.requires_grad_(False)
     clip.requires_grad_(False)
     dit.requires_grad_(False)
+    points_map_encoder.requires_grad_(True)
 
     vae.eval()
     t5.eval()
     clip.eval()
     dit.train()
+    points_map_encoder.train()
     dit.enable_gradient_checkpointing()
 
     # 注入 LoRA 层
@@ -155,30 +163,33 @@ def main():
         missing_keys, unexpected_keys = dit.load_state_dict(lora_weights, strict=False)
         logger.info(f"unexpected_lora_keys:{unexpected_keys}")
         logger.info("successfully resume lora")
+    
+    if ARGS.resume_points_map_encoder_path is not None:
+        resume_path = ARGS.resume_points_map_encoder_path
+        weights = load_file(resume_path)
+        missing_keys, unexpected_keys = points_map_encoder.load_state_dict(weights, strict=True)
+        logger.info(f"missing_keys:{missing_keys}")
+        logger.info(f"unexpected_lora_keys:{unexpected_keys}")
+        logger.info("successfully resume pemb")
 
     # 检查可训练参数
-    trainable_params = [p for n, p in dit.named_parameters() if p.requires_grad]
-
-    # 设置优化器
-    lr = ARGS.lr
-    optimizer = AdamW(trainable_params, lr=lr)
+    params_groups = [
+        {"params": [p for p in dit.parameters() if p.requires_grad], "lr": ARGS.lr},
+        {"params": [p for p in points_map_encoder.parameters() if p.requires_grad], "lr": ARGS.lr}, # 插件通常用稍小的 LR
+    ]
+    optimizer = AdamW(params_groups)
 
     # 加载数据 
-    dataset = MotionEditDataset(files_path=["/home/yanzhang/datasets/motionedit/train-00000-of-00006.parquet",
-                                            "/home/yanzhang/datasets/motionedit/train-00001-of-00006.parquet",
-                                            "/home/yanzhang/datasets/motionedit/train-00002-of-00006.parquet",
-                                            "/home/yanzhang/datasets/motionedit/train-00003-of-00006.parquet",
-                                            "/home/yanzhang/datasets/motionedit/train-00004-of-00006.parquet",
-                                            "/home/yanzhang/datasets/motionedit/train-00005-of-00006.parquet",
-                                            ])
-    dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
+    dataset = DragDataset(jsonl_file="/home/yanzhang/dragdatasets/paired_frames.jsonl")
+    dataloader = DataLoader(dataset, batch_size=1, shuffle=True, collate_fn=dd_collate_fn)
 
     # Prepare with accelerator
     accelerator.wait_for_everyone()
-    dit, optimizer, dataloader= accelerator.prepare(dit, optimizer, dataloader)
+    dit, points_map_encoder, optimizer, dataloader= accelerator.prepare(dit, points_map_encoder, optimizer, dataloader)
     dit.train()
+    points_map_encoder.train()
 
-    trainable_named_params = [n for n, p in dit.named_parameters() if p.requires_grad]
+    trainable_named_params = [n for n, p in dit.named_parameters() if p.requires_grad] + [n for n, p in points_map_encoder.named_parameters() if p.requires_grad]
     if accelerator.is_main_process:
         logger.info("Here are the trainable params")
         logger.info(trainable_named_params)
@@ -193,13 +204,21 @@ def main():
     for epoch in range(num_epochs):
         for step, batch in enumerate(dataloader):
             with accelerator.accumulate(dit):
-                instructions = batch["prompt"]
+                
                 src_images = batch["input_image"].to(accelerator.device)
                 tgt_images = batch["target_image"].to(accelerator.device)
+
+                src_points = batch["src_points"]
+                tgt_points = batch["tgt_points"]
+
                 batch_size = src_images.shape[0]
+                instructions = ["Drag the image according to the given points mapping embeddings."] * batch_size  # 或者给一个合适的instrcution
 
                 with torch.no_grad():
                     prompts = instructions
+
+                    src_points_emb = get_points_map_embedding(points_map_encoder, src_images, src_points, mode="integer_index")
+                    tgt_points_emb = get_points_map_embedding(points_map_encoder, tgt_images, tgt_points, mode="integer_index")
                     
                     # 获取文本embedding & tokens
                     pooled_prompt_embeds = _encode_prompt_with_clip(
@@ -247,11 +266,17 @@ def main():
                     x_1 = torch.randn_like(tgt_image_latents).to(accelerator.device)
                     x_t = (1 - t) * tgt_image_latents + t * x_1
 
+                # concat points emb
+                x_t_pemb = torch.cat([x_t, tgt_points_emb], dim=2)
+                src_image_latents_pemb = torch.cat([src_image_latents, src_points_emb], dim=2)
+
                 # denoise
-                latent_model_input = torch.cat([x_t, src_image_latents], dim=1)
+                # latent_model_input = torch.cat([x_t, src_image_latents], dim=1)
+                latent_model_input = torch.cat([x_t_pemb, src_image_latents_pemb], dim=1)
                 latent_ids = torch.cat([tgt_image_ids, src_image_ids], dim=0)
                 guidance = torch.full((x_t.shape[0],), 1, device=x_t.device)
 
+                # 还需要修改dit的第一个conv_in
                 noise_pred = dit(
                     hidden_states=latent_model_input.to(dtype=weight_dtype),
                     timestep=t.squeeze(1).squeeze(1).to(dtype=weight_dtype),     #[0,1]

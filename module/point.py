@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from typing import Optional, Tuple, Union
+import json
+import numpy as np
 
 class ResnetBlock2D(nn.Module):
     r"""
@@ -203,7 +205,7 @@ class DownEncoderBlock2D(nn.Module):
 
         return hidden_states
 
-class PointMapEncoder(nn.Module):
+class PointsMapEncoder(nn.Module):
     r"""
     The `Encoder` layer of a variational autoencoder that encodes its input into a latent representation.
 
@@ -234,9 +236,6 @@ class PointMapEncoder(nn.Module):
         block_out_channels: Tuple[int, ...] = (64,),
         layers_per_block: int = 2,
         norm_num_groups: int = 32,
-        act_fn: str = "silu",
-        double_z: bool = True,
-        mid_block_add_attention=True,
     ):
         super().__init__()
         self.layers_per_block = layers_per_block
@@ -256,13 +255,12 @@ class PointMapEncoder(nn.Module):
         for i,_ in enumerate(block_out_channels):
             input_channel = output_channel
             output_channel = block_out_channels[i]
-            is_final_block = i == len(block_out_channels) - 1
 
             down_block = DownEncoderBlock2D(
                 num_layers=self.layers_per_block,
                 in_channels=input_channel,
                 out_channels=output_channel,
-                add_downsample=not is_final_block,
+                add_downsample=True,
                 resnet_eps=1e-6,
                 downsample_padding=0,
                 resnet_groups=norm_num_groups,
@@ -272,9 +270,7 @@ class PointMapEncoder(nn.Module):
         # out
         self.conv_norm_out = nn.GroupNorm(num_channels=block_out_channels[-1], num_groups=norm_num_groups, eps=1e-6)
         self.conv_act = nn.SiLU()
-
-        conv_out_channels = 2 * out_channels if double_z else out_channels
-        self.conv_out = nn.Conv2d(block_out_channels[-1], conv_out_channels, 3, stride=1, padding=1)
+        self.conv_out = nn.Conv2d(block_out_channels[-1], out_channels, 3, stride=1, padding=1)
 
         self.gradient_checkpointing = False
 
@@ -290,4 +286,39 @@ class PointMapEncoder(nn.Module):
         sample = self.conv_act(sample)
         sample = self.conv_out(sample)
 
+        # 还需要变成序列化的形式，适应flux架构
+
         return sample
+
+    @property
+    def device(self):
+        return next(self.parameters()).device
+
+def get_points_map_embedding(model, img_tensor, points, mode):
+    B, _, H, W = img_tensor.shape
+    if isinstance(points, np.ndarray):
+        points = torch.from_numpy(points)  #[B, N, 2] for (x,y)
+    N = points.shape[1]
+
+    if mode == "integer_index":
+        points_map = torch.zeros((B, 1, H, W), device=img_tensor.device, dtype=torch.float32)
+        coords = points.long()
+        xs = coords[..., 0].clamp(0, W - 1)  #[B, N]
+        ys = coords[..., 1].clamp(0, H - 1)  #[B, N]
+        batch_indices = torch.arange(B, device=img_tensor.device).view(B, 1).expand(B, N)
+        values = torch.arange(1, N + 1, device=img_tensor.device).float().expand(B, N)
+        points_map[batch_indices, 0, ys, xs] = values
+    
+    points_emb = model(points_map.to(model.device))
+    return points_emb
+        
+if __name__ == "__main__":
+    point_map_encoder_config_path = "/home/yanzhang/drag_edit/module/pme_config.json"
+    with open(point_map_encoder_config_path, "r") as f:
+        point_map_encoder_config = json.load(f)
+    point_map_encoder = PointsMapEncoder(**point_map_encoder_config).to("cuda")
+    # print(point_map_encoder)
+    img_tensor = torch.rand([4,3,512,512])
+    points = torch.randint(low=0, high=511, size=(4,10,2))
+    points_emb = get_points_map_embedding(point_map_encoder, img_tensor, points, "integer_index")
+    print(points_emb.shape)

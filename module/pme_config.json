@@ -1,0 +1,12 @@
+{
+  "block_out_channels": [
+    128,
+    256,
+    512,
+    512
+  ],
+  "in_channels": 1,
+  "out_channels": 16,
+  "layers_per_block": 2,
+  "norm_num_groups": 32
+}
