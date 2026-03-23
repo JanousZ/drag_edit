@@ -4,9 +4,11 @@ Training script for Kontext model with DeepSpeed and Accelerate
 """
 
 import torch
+import torch.nn as nn
 from torch.optim import AdamW
 from accelerate import Accelerator
 from peft import get_peft_model, LoraConfig
+from typing import Dict, Any, Optional
 import argparse
 from my_datasets.dragdataset import DragDataset, dd_collate_fn
 from torch.utils.data import DataLoader
@@ -17,6 +19,7 @@ import diffusers
 import datasets
 import transformers
 from diffusers.models import AutoencoderKL, FluxTransformer2DModel
+from module.dit import FluxTransformer2DPointsModel
 from transformers import (
     CLIPImageProcessor,
     CLIPTextModel,
@@ -31,10 +34,67 @@ import shutil
 from utils.infer_utils import _encode_prompt_with_clip, _encode_prompt_with_t5
 import os
 import math
-from module.point import PointsMapEncoder, get_points_map_embedding
+from module.point import PointsMapEncoder
 import json
+import numpy as np
 
-os.environ["WANDB_API_KEY"] = "86ab58d2a525a27f7a60ab5fa492d36bdf932255"
+class JointModel(nn.Module):
+    def __init__(self, dit, points_map_encoder):
+        super().__init__()
+        self.dit = dit
+        self.points_map_encoder = points_map_encoder
+
+    def forward(
+        self,
+        hidden_states: torch.Tensor,
+        encoder_hidden_states: torch.Tensor = None,
+        pooled_projections: torch.Tensor = None,
+        timestep: torch.LongTensor = None,
+        img_ids: torch.Tensor = None,
+        txt_ids: torch.Tensor = None,
+        guidance: torch.Tensor = None,
+        joint_attention_kwargs: Optional[Dict[str, Any]] = None,
+        controlnet_block_samples=None,
+        controlnet_single_block_samples=None,
+        return_dict: bool = True,
+        controlnet_blocks_repeat: bool = False,
+
+        mode: str = None,
+        img_tensor: torch.Tensor = None, # 指的是直接图片导入未经VAE处理的tensor
+        points: torch.Tensor = None,
+        weight_dtype = None,
+    ):
+        B, _, H, W = img_tensor.shape
+        if isinstance(points, np.ndarray):
+            points = torch.from_numpy(points)  #[B, N, 2] for (x,y)
+        N = points.shape[1]
+
+        if mode == "integer_index":
+            points_map = torch.zeros((2 * B, 1, H, W), device=img_tensor.device, dtype=weight_dtype)
+            coords = points.long()
+            xs = coords[..., 0].clamp(0, W - 1)  #[2B, N]
+            ys = coords[..., 1].clamp(0, H - 1)  #[2B, N]
+            batch_indices = torch.arange(2 * B, device=img_tensor.device).view(2 * B, 1).expand(2 * B, N)
+            values = torch.arange(1, N + 1, device=img_tensor.device).float().expand(2 * B, N).to(dtype=weight_dtype)
+            points_map[batch_indices, 0, ys, xs] = values
+        
+        ts_points_emb = self.points_map_encoder(points_map.to(self.points_map_encoder.device))
+        tgt_points_emb, src_points_emb = ts_points_emb.chunk(2, dim=0) 
+        points_emb = torch.concat([tgt_points_emb, src_points_emb], dim=1)
+
+        noise_pred = self.dit(
+            hidden_states=hidden_states,
+            timestep=timestep,     #[0,1]
+            guidance=guidance,     #[1.0]
+            pooled_projections=pooled_projections,
+            encoder_hidden_states=encoder_hidden_states,
+            txt_ids=txt_ids,
+            img_ids=img_ids,
+            points_emb=points_emb.to(dtype=weight_dtype),
+            return_dict=False,
+        )
+        
+        return noise_pred
 
 def parse_args():
     """Parses command-line arguments for model paths and server configuration."""
@@ -42,7 +102,7 @@ def parse_args():
     parser.add_argument(
         "--base_model_path", 
         type=str, 
-        default="/home/yanzhang/models/FLUX.1-Kontext-dev", 
+        default="/mnt/disk1/models/FLUX.1-Kontext-dev", 
         help="Path to the FLUX.1-Kontext editing."
     )
     parser.add_argument("--lora_rank", type=int, default=32)
@@ -57,6 +117,7 @@ def parse_args():
     parser.add_argument("--max_grad_norm", type=float, default=1.0)
     parser.add_argument("--checkpoints_total_limit", type=int, default=10)
     parser.add_argument("--resume_lora_path", type=str, default=None)
+    parser.add_argument("--resume_points_map_encoder_path", type=str, default=None)
     args = parser.parse_args()
     return args
 
@@ -95,7 +156,7 @@ def main():
         project_dir=ARGS.output_dir,
     )
     torch.cuda.set_device(accelerator.device)
-    accelerator.init_trackers("motion_edit", config=vars(ARGS))
+    accelerator.init_trackers("drag_edit", config=vars(ARGS))
 
     # Make one log on every process with the configuration for debugging.
     logging.basicConfig(
@@ -120,7 +181,7 @@ def main():
     # 加载预训练模型
     base_model = ARGS.base_model_path
 
-    dit = FluxTransformer2DModel.from_pretrained(base_model, subfolder="transformer")
+    dit = FluxTransformer2DPointsModel.from_pretrained(base_model, subfolder="transformer")
     vae = AutoencoderKL.from_pretrained(base_model, subfolder="vae")
     t5 = T5EncoderModel.from_pretrained(base_model, subfolder="text_encoder_2")
     clip = CLIPTextModel.from_pretrained(base_model, subfolder="text_encoder")
@@ -134,48 +195,51 @@ def main():
     t5 = t5.to(accelerator.device)
     clip = clip.to(accelerator.device)
     vae = vae.to(accelerator.device)
+    dit._initialize_custom_layers()
+    points_map_encoder._initialize_layers()
 
     vae.requires_grad_(False)
     t5.requires_grad_(False)
     clip.requires_grad_(False)
-    dit.requires_grad_(False)
-    points_map_encoder.requires_grad_(True)
 
     vae.eval()
     t5.eval()
     clip.eval()
-    dit.train()
-    points_map_encoder.train()
-    dit.enable_gradient_checkpointing()
 
+    model = JointModel(dit, points_map_encoder)
+    model.train()
+    model.dit.requires_grad_(False)
+    model.points_map_encoder.requires_grad_(True)
+    model.dit.enable_gradient_checkpointing()
+    
     # 注入 LoRA 层
     lora_rank = ARGS.lora_rank
     lora_alpha = ARGS.lora_alpha
     lora_config = LoraConfig(
         r=lora_rank, lora_alpha=lora_alpha, target_modules=["to_q", "to_v", "to_k", "to_out.0"], lora_dropout=0.05
     )
-    dit.add_adapter(lora_config, adapter_name="edit")
+    model.dit.add_adapter(lora_config, adapter_name="edit")
 
     # 断点重训
     if ARGS.resume_lora_path is not None:
         resume_lora_path = ARGS.resume_lora_path
         lora_weights = load_file(resume_lora_path)
-        missing_keys, unexpected_keys = dit.load_state_dict(lora_weights, strict=False)
+        missing_keys, unexpected_keys = model.dit.load_state_dict(lora_weights, strict=False)
         logger.info(f"unexpected_lora_keys:{unexpected_keys}")
         logger.info("successfully resume lora")
     
     if ARGS.resume_points_map_encoder_path is not None:
         resume_path = ARGS.resume_points_map_encoder_path
         weights = load_file(resume_path)
-        missing_keys, unexpected_keys = points_map_encoder.load_state_dict(weights, strict=True)
+        missing_keys, unexpected_keys = model.points_map_encoder.load_state_dict(weights, strict=True)
         logger.info(f"missing_keys:{missing_keys}")
         logger.info(f"unexpected_lora_keys:{unexpected_keys}")
         logger.info("successfully resume pemb")
 
     # 检查可训练参数
     params_groups = [
-        {"params": [p for p in dit.parameters() if p.requires_grad], "lr": ARGS.lr},
-        {"params": [p for p in points_map_encoder.parameters() if p.requires_grad], "lr": ARGS.lr}, # 插件通常用稍小的 LR
+        {"params": [p for p in model.dit.parameters() if p.requires_grad], "lr": ARGS.lr},
+        {"params": [p for p in model.points_map_encoder.parameters() if p.requires_grad], "lr": ARGS.lr}, # 插件通常用稍小的 LR
     ]
     optimizer = AdamW(params_groups)
 
@@ -185,11 +249,24 @@ def main():
 
     # Prepare with accelerator
     accelerator.wait_for_everyone()
-    dit, points_map_encoder, optimizer, dataloader= accelerator.prepare(dit, points_map_encoder, optimizer, dataloader)
-    dit.train()
-    points_map_encoder.train()
+    model, optimizer, dataloader= accelerator.prepare(model, optimizer, dataloader)
 
-    trainable_named_params = [n for n, p in dit.named_parameters() if p.requires_grad] + [n for n, p in points_map_encoder.named_parameters() if p.requires_grad]
+    # unwrapped_model = accelerator.unwrap_model(model)
+    # if ARGS.resume_lora_path:
+    # # 注意：这里加载时要确保 device 一致
+    #     lora_weights = load_file(ARGS.resume_lora_path)
+    #     missing_keys, unexpected_keys = unwrapped_model.dit.load_state_dict(lora_weights, strict=False)
+    #     logger.info(f"unexpected_lora_keys:{unexpected_keys}")
+    #     logger.info("successfully resume lora")
+
+    # if ARGS.resume_points_map_encoder_path:
+    #     weights = load_file(ARGS.resume_points_map_encoder_path)
+    #     missing_keys, unexpected_keys = unwrapped_model.points_map_encoder.load_state_dict(weights, strict=True)
+    #     logger.info(f"missing_keys:{missing_keys}")
+    #     logger.info(f"unexpected_lora_keys:{unexpected_keys}")
+    #     logger.info("successfully resume pemb")
+
+    trainable_named_params = [n for n, p in model.named_parameters() if p.requires_grad]
     if accelerator.is_main_process:
         logger.info("Here are the trainable params")
         logger.info(trainable_named_params)
@@ -216,9 +293,6 @@ def main():
 
                 with torch.no_grad():
                     prompts = instructions
-
-                    src_points_emb = get_points_map_embedding(points_map_encoder, src_images, src_points, mode="integer_index")
-                    tgt_points_emb = get_points_map_embedding(points_map_encoder, tgt_images, tgt_points, mode="integer_index")
                     
                     # 获取文本embedding & tokens
                     pooled_prompt_embeds = _encode_prompt_with_clip(
@@ -238,7 +312,7 @@ def main():
                     text_ids = torch.zeros(prompt_embeds.shape[1], 3).to(device=accelerator.device, dtype=clip.dtype)
                     
                     # image encode
-                    num_channels_latents = dit.module.config.in_channels // 4
+                    num_channels_latents = dit.config.in_channels // 4
                     src_image_latents = (vae.encode(src_images.float()).latent_dist.sample() - vae.config.shift_factor) * vae.config.scaling_factor
                     tgt_image_latents = (vae.encode(tgt_images.float()).latent_dist.sample() - vae.config.shift_factor) * vae.config.scaling_factor
                     image_latent_height, image_latent_width = src_image_latents.shape[2:]
@@ -266,18 +340,13 @@ def main():
                     x_1 = torch.randn_like(tgt_image_latents).to(accelerator.device)
                     x_t = (1 - t) * tgt_image_latents + t * x_1
 
-                # concat points emb
-                x_t_pemb = torch.cat([x_t, tgt_points_emb], dim=2)
-                src_image_latents_pemb = torch.cat([src_image_latents, src_points_emb], dim=2)
-
                 # denoise
-                # latent_model_input = torch.cat([x_t, src_image_latents], dim=1)
-                latent_model_input = torch.cat([x_t_pemb, src_image_latents_pemb], dim=1)
+                latent_model_input = torch.cat([x_t, src_image_latents], dim=1)
                 latent_ids = torch.cat([tgt_image_ids, src_image_ids], dim=0)
                 guidance = torch.full((x_t.shape[0],), 1, device=x_t.device)
 
                 # 还需要修改dit的第一个conv_in
-                noise_pred = dit(
+                noise_pred = model(
                     hidden_states=latent_model_input.to(dtype=weight_dtype),
                     timestep=t.squeeze(1).squeeze(1).to(dtype=weight_dtype),     #[0,1]
                     guidance=guidance.to(dtype=weight_dtype),     #[1.0]
@@ -286,6 +355,11 @@ def main():
                     txt_ids=text_ids.to(dtype=weight_dtype),
                     img_ids=latent_ids.to(dtype=weight_dtype),
                     return_dict=False,
+
+                    mode="integer_index",
+                    img_tensor=src_images, # 指的是直接图片导入未经VAE处理的tensor
+                    points=torch.concat([tgt_points, src_points], dim=0).to(dtype=weight_dtype),
+                    weight_dtype=weight_dtype,
                 )[0]
                 noise_pred = noise_pred[:, :x_t.size(1)]
 
@@ -332,6 +406,13 @@ def main():
                         save_file(
                             lora_state_dict,
                             os.path.join(save_path, "lora.safetensors")
+                        )
+                        logger.info(f"Saved state to {save_path}")
+
+                        unwrapped_model_state = accelerator.unwrap_model(points_map_encoder).state_dict()
+                        save_file(
+                            unwrapped_model_state,
+                            os.path.join(save_path, "points_map_encoder.safetensors")
                         )
                         logger.info(f"Saved state to {save_path}")
 

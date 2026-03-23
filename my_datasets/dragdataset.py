@@ -66,6 +66,7 @@ class DragDataset(Dataset):
         def to_tensor(img):
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) # BGR to RGB
             img_tensor = torch.from_numpy(img).float() # [H, W, C]
+            img_tensor = img_tensor.permute(2, 0, 1)  #[c,h,w]
             img_tensor = (img_tensor / 127.5) - 1.0    # 归一化到 [-1, 1]
             return img_tensor
 

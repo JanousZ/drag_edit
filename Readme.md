@@ -5,9 +5,8 @@ export http_proxy="http://127.0.0.1:7890"
 unset https_proxy  
 export https_proxy="http://127.0.0.1:7890"
 cd Kontext_train_ds2
-accelerate launch --config_file ./train/deepspeed.yaml ./train/train_ds2_replace5k.py --num_epochs 5 --lr 1e-4 --save_steps 500 > train.log 2>&1
 
-accelerate launch --config_file ./train/deepspeed.yaml ./train/train_ds2_motionedit.py --num_epochs 5 --lr 1e-4 --save_steps 500
+accelerate launch --config_file ./train/deepspeed.yaml --main_process_port 29606 ./train/train_ds2.py --num_epochs 5 --lr 1e-4 --save_steps 500 > train.log 2>&1
 
 #异步错误处理
 当一个 GPU 节点发生 NCCL 错误时，其他节点能及时收到通知并优雅退出，而不是一直死等（卡死）。它让错误日志更清晰。
@@ -112,3 +111,16 @@ dmesg | grep -e DMAR -e IOMMU
 找到 GRUB_CMDLINE_LINUX_DEFAULT 这一行，在引号内加入 intel_iommu=on iommu=pt。
 iommu=pt 的意思是 "Passthrough"，它会让系统开启 IOMMU 但不对 PCIe 设备间的直接通信进行干预。
 更新配置并重启： sudo update-grub sudo reboot
+
+## wandb检查登录状态
+wandb login
+wandb login --relogin
+打开网址，登录账号（gmail），获取API key。
+
+## Accelerate卡死情况
+情况1：使用键盘退出时显示 [rank0]: baton.wait()
+原因分析：
+编译锁死（File Baton）： 当 DeepSpeed 第一次运行或者配置发生变化时，它需要编译 CPUAdam 等加速算子。为了防止多个进程同时编译同一个文件，PyTorch 使用了一个叫 file_baton 的“接力棒”锁。
+僵尸锁文件： 如果你之前的尝试失败了（比如崩溃或被强制强杀），那个锁文件（.lock）可能还残留在 /home/yanzhang/.cache/torch_extensions 或类似的目录里。
+无限等待： 当前进程看到锁文件已经存在，以为别的进程正在编译，于是就乖乖地在那 time.sleep 等待。但实际上，那个“正在编译”的进程早就死了，所以你的程序会永远等下去。
+解决方案：rm -rf /home/yanzhang/.cache/torch_extensions/*

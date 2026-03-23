@@ -286,13 +286,49 @@ class PointsMapEncoder(nn.Module):
         sample = self.conv_act(sample)
         sample = self.conv_out(sample)
 
-        # 还需要变成序列化的形式，适应flux架构
+        # sample序列化 [b,c,h,w] -> [b,h*w,c]
+        sample = sample.flatten(-2).permute(0,2,1)
 
         return sample
 
     @property
     def device(self):
         return next(self.parameters()).device
+
+    def _initialize_layers(self):
+        # 获取当前设备，处理 meta tensor 情况
+        # 如果 self.parameters() 为空（比如还没定义参数），默认到 CPU
+        try:
+            target_device = self.device
+        except StopIteration:
+            target_device = torch.device("cpu")
+
+        for name, module in self.named_modules():
+            # 1. 处理 Meta Tensor: 如果层在 meta 上，先给它分配内存
+            # named_parameters() 会返回该 module 及其子 module 的所有参数
+            for param_name, param in module.named_parameters(recurse=False):
+                if param.is_meta:
+                    module.to_empty(device=target_device)
+
+            # 2. 根据层类型进行特定初始化
+            if isinstance(module, nn.Conv2d):
+                # 卷积层：使用 Kaiming Normal (适合 SiLU/ReLU 激活函数)
+                nn.init.kaiming_normal_(module.weight, mode='fan_out', nonlinearity='leaky_relu')
+                if module.bias is not None:
+                    nn.init.zeros_(module.bias)
+
+            elif isinstance(module, nn.GroupNorm):
+                # 归一化层：权重设为 1，偏置设为 0
+                nn.init.ones_(module.weight)
+                nn.init.zeros_(module.bias)
+
+            elif isinstance(module, nn.Linear):
+                # 线性层（如果你以后添加的话）：使用 Xavier Uniform
+                nn.init.xavier_uniform_(module.weight)
+                if module.bias is not None:
+                    nn.init.zeros_(module.bias)
+        
+        print(f"Successfully initialized {self.__class__.__name__} layers.")
 
 def get_points_map_embedding(model, img_tensor, points, mode):
     B, _, H, W = img_tensor.shape
@@ -322,3 +358,5 @@ if __name__ == "__main__":
     points = torch.randint(low=0, high=511, size=(4,10,2))
     points_emb = get_points_map_embedding(point_map_encoder, img_tensor, points, "integer_index")
     print(points_emb.shape)
+
+# conv_out是否选择零卷积层初始化？

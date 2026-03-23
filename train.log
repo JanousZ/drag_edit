@@ -1,171 +1,191 @@
-INFO:__main__:Distributed environment: FSDP  Backend: nccl
-Num processes: 3
-Process index: 2
-Local process index: 2
-Device: cuda:2
-
-Mixed precision type: no
-
-Loading checkpoint shards:   0%|          | 0/3 [00:00<?, ?it/s]INFO:__main__:Distributed environment: FSDP  Backend: nccl
-Num processes: 3
-Process index: 1
-Local process index: 1
-Device: cuda:1
-
-Mixed precision type: no
-
-Loading checkpoint shards:   0%|          | 0/3 [00:00<?, ?it/s]wandb: Currently logged in as: 1415613218 (1415613218-zhejiang-university) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
-wandb: Tracking run with wandb version 0.19.10
-wandb: Run data is saved locally in /home/yanzhang/kontext_train_ds2/wandb/run-20260124_065001-unul3426
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from /home/yanzhang/.netrc.
+wandb: Currently logged in as: janousfyz (labo1) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: setting up run 1oh71e4j
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /home/yanzhang/drag_edit/wandb/run-20260323_084020-1oh71e4j
 wandb: Run `wandb offline` to turn off syncing.
-wandb: Syncing run revived-fog-57
-wandb: ⭐️ View project at https://wandb.ai/1415613218-zhejiang-university/ds2_kontext
-wandb: 🚀 View run at https://wandb.ai/1415613218-zhejiang-university/ds2_kontext/runs/unul3426
-INFO:__main__:Distributed environment: FSDP  Backend: nccl
-Num processes: 3
+wandb: Syncing run pleasant-cloud-18
+wandb: ⭐️ View project at https://wandb.ai/labo1/drag_edit
+wandb: 🚀 View run at https://wandb.ai/labo1/drag_edit/runs/1oh71e4j
+INFO:__main__:Distributed environment: DEEPSPEED  Backend: nccl
+Num processes: 1
 Process index: 0
 Local process index: 0
 Device: cuda:0
 
-Mixed precision type: no
+Mixed precision type: bf16
+ds_config: {'bf16': {'enabled': True}, 'zero_optimization': {'stage': 2, 'offload_optimizer': {'device': 'cpu', 'pin_memory': True}, 'overlap_comm': True, 'contiguous_gradients': True, 'reduce_bucket_size': 200000000.0, 'allgather_bucket_size': 200000000.0}, 'gradient_accumulation_steps': 1, 'gradient_clipping': 1.0, 'steps_per_print': inf, 'train_batch_size': 'auto', 'train_micro_batch_size_per_gpu': 'auto', 'wall_clock_breakdown': False, 'fp16': {'enabled': False}}
 
-Loading checkpoint shards:   0%|          | 0/3 [00:00<?, ?it/s]Loading checkpoint shards:  33%|███▎      | 1/3 [00:12<00:25, 12.69s/it]Loading checkpoint shards:  33%|███▎      | 1/3 [00:10<00:21, 10.91s/it]Loading checkpoint shards:  33%|███▎      | 1/3 [00:12<00:25, 12.70s/it]Loading checkpoint shards:  67%|██████▋   | 2/3 [00:20<00:09,  9.59s/it]Loading checkpoint shards:  67%|██████▋   | 2/3 [00:20<00:09,  9.77s/it]Loading checkpoint shards:  67%|██████▋   | 2/3 [00:18<00:08,  8.98s/it]Loading checkpoint shards: 100%|██████████| 3/3 [00:22<00:00,  6.43s/it]Loading checkpoint shards: 100%|██████████| 3/3 [00:22<00:00,  7.59s/it]
-Loading checkpoint shards: 100%|██████████| 3/3 [00:23<00:00,  6.54s/it]Loading checkpoint shards: 100%|██████████| 3/3 [00:23<00:00,  7.70s/it]
-Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards: 100%|██████████| 2/2 [00:00<00:00, 654.29it/s]
-Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards: 100%|██████████| 2/2 [00:00<00:00, 653.17it/s]
-Loading checkpoint shards: 100%|██████████| 3/3 [00:21<00:00,  6.13s/it]Loading checkpoint shards: 100%|██████████| 3/3 [00:21<00:00,  7.09s/it]
-All model checkpoint weights were used when initializing FluxTransformer2DModel.
+/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/diffusers/models/embeddings.py:2609: FutureWarning: `FluxPosEmbed` is deprecated and will be removed in version 1.0.0. Importing and using `FluxPosEmbed` from `diffusers.models.embeddings` is deprecated. Please import it from `diffusers.models.transformers.transformer_flux`.
+  deprecate("FluxPosEmbed", "1.0.0", deprecation_message)
+Loading checkpoint shards:   0%|          | 0/3 [00:00<?, ?it/s]Loading checkpoint shards:  33%|███▎      | 1/3 [00:01<00:02,  1.11s/it]Loading checkpoint shards:  67%|██████▋   | 2/3 [00:02<00:01,  1.04s/it]Loading checkpoint shards: 100%|██████████| 3/3 [00:02<00:00,  1.35it/s]Loading checkpoint shards: 100%|██████████| 3/3 [00:02<00:00,  1.20it/s]
+All model checkpoint weights were used when initializing FluxTransformer2DPointsModel.
 
-All the weights of FluxTransformer2DModel were initialized from the model checkpoint at /mnt/disk1/models/FLUX.1-Kontext-dev.
-If your task is similar to the task the model of the checkpoint was trained on, you can already use FluxTransformer2DModel for predictions without further training.
+Some weights of FluxTransformer2DPointsModel were not initialized from the model checkpoint at /mnt/disk1/models/FLUX.1-Kontext-dev and are newly initialized: ['points_embedder.bias', 'points_embedder.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
 All model checkpoint weights were used when initializing AutoencoderKL.
 
 All the weights of AutoencoderKL were initialized from the model checkpoint at /mnt/disk1/models/FLUX.1-Kontext-dev.
 If your task is similar to the task the model of the checkpoint was trained on, you can already use AutoencoderKL for predictions without further training.
-Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.97s/it][rank1]:[W124 06:50:28.951145994 ProcessGroupNCCL.cpp:4715] [PG ID 0 PG GUID 0 Rank 1]  using GPU 1 as device used by this process is currently unknown. This can potentially cause a hang if this rank to GPU mapping is incorrect. You can pecify device_id in init_process_group() to force use of a particular device.
-[rank2]:[W124 06:50:28.979401472 ProcessGroupNCCL.cpp:4715] [PG ID 0 PG GUID 0 Rank 2]  using GPU 2 as device used by this process is currently unknown. This can potentially cause a hang if this rank to GPU mapping is incorrect. You can pecify device_id in init_process_group() to force use of a particular device.
-Loading checkpoint shards: 100%|██████████| 2/2 [00:07<00:00,  3.67s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:07<00:00,  3.71s/it]
-You set `add_prefix_space`. The tokenizer needs to be converted from the slow tokenizers
-[rank0]:[W124 06:50:35.638061889 ProcessGroupNCCL.cpp:4715] [PG ID 0 PG GUID 0 Rank 0]  using GPU 0 as device used by this process is currently unknown. This can potentially cause a hang if this rank to GPU mapping is incorrect. You can pecify device_id in init_process_group() to force use of a particular device.
-[rank1]: Traceback (most recent call last):
-[rank1]:   File "/home/yanzhang/kontext_train_ds2/./train/train_ds2_replace5k.py", line 329, in <module>
-[rank1]:     main()
-[rank1]:   File "/home/yanzhang/kontext_train_ds2/./train/train_ds2_replace5k.py", line 176, in main
-[rank1]:     dit, optimizer, dataloader= accelerator.prepare(dit, optimizer, dataloader)
-[rank1]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/accelerator.py", line 1398, in prepare
-[rank1]:     result = tuple(
-[rank1]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/accelerator.py", line 1399, in <genexpr>
-[rank1]:     self._prepare_one(obj, first_pass=True, device_placement=d) for obj, d in zip(args, device_placement)
-[rank1]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/accelerator.py", line 1272, in _prepare_one
-[rank1]:     return self.prepare_model(obj, device_placement=device_placement)
-[rank1]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/accelerator.py", line 1593, in prepare_model
-[rank1]:     model = FSDP(model, **kwargs)
-[rank1]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/fsdp/fully_sharded_data_parallel.py", line 499, in __init__
-[rank1]:     _init_param_handle_from_module(
-[rank1]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/fsdp/_init_utils.py", line 598, in _init_param_handle_from_module
-[rank1]:     _move_module_to_device(
-[rank1]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/fsdp/_init_utils.py", line 991, in _move_module_to_device
-[rank1]:     _move_states_to_device(params_to_move, bufs_to_move, device_from_device_id)
-[rank1]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/fsdp/_init_utils.py", line 1021, in _move_states_to_device
-[rank1]:     param.data = param.to(device_from_device_id)
-[rank1]: torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 144.00 MiB. GPU 1 has a total capacity of 47.40 GiB of which 6.25 MiB is free. Including non-PyTorch memory, this process has 47.39 GiB memory in use. Of the allocated memory 46.88 GiB is allocated by PyTorch, and 78.50 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
-Traceback (most recent call last):
-  File "/home/yanzhang/kontext_train_ds2/./train/train_ds2_replace5k.py", line 329, in <module>
-    main()
-  File "/home/yanzhang/kontext_train_ds2/./train/train_ds2_replace5k.py", line 176, in main
-    dit, optimizer, dataloader= accelerator.prepare(dit, optimizer, dataloader)
-  File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/accelerator.py", line 1398, in prepare
-    result = tuple(
-  File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/accelerator.py", line 1399, in <genexpr>
-    self._prepare_one(obj, first_pass=True, device_placement=d) for obj, d in zip(args, device_placement)
-  File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/accelerator.py", line 1272, in _prepare_one
-    return self.prepare_model(obj, device_placement=device_placement)
-  File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/accelerator.py", line 1593, in prepare_model
-    model = FSDP(model, **kwargs)
-  File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/fsdp/fully_sharded_data_parallel.py", line 499, in __init__
-    _init_param_handle_from_module(
-  File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/fsdp/_init_utils.py", line 598, in _init_param_handle_from_module
-    _move_module_to_device(
-  File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/fsdp/_init_utils.py", line 991, in _move_module_to_device
-    _move_states_to_device(params_to_move, bufs_to_move, device_from_device_id)
-  File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/fsdp/_init_utils.py", line 1021, in _move_states_to_device
-    param.data = param.to(device_from_device_id)
-torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 144.00 MiB. GPU 0 has a total capacity of 47.40 GiB of which 22.25 MiB is free. Including non-PyTorch memory, this process has 47.37 GiB memory in use. Of the allocated memory 46.88 GiB is allocated by PyTorch, and 78.50 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
-[rank0]: Traceback (most recent call last):
-[rank0]:   File "/home/yanzhang/kontext_train_ds2/./train/train_ds2_replace5k.py", line 329, in <module>
-[rank0]:     main()
-[rank0]:   File "/home/yanzhang/kontext_train_ds2/./train/train_ds2_replace5k.py", line 176, in main
-[rank0]:     dit, optimizer, dataloader= accelerator.prepare(dit, optimizer, dataloader)
-[rank0]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/accelerator.py", line 1398, in prepare
-[rank0]:     result = tuple(
-[rank0]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/accelerator.py", line 1399, in <genexpr>
-[rank0]:     self._prepare_one(obj, first_pass=True, device_placement=d) for obj, d in zip(args, device_placement)
-[rank0]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/accelerator.py", line 1272, in _prepare_one
-[rank0]:     return self.prepare_model(obj, device_placement=device_placement)
-[rank0]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/accelerator.py", line 1593, in prepare_model
-[rank0]:     model = FSDP(model, **kwargs)
-[rank0]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/fsdp/fully_sharded_data_parallel.py", line 499, in __init__
-[rank0]:     _init_param_handle_from_module(
-[rank0]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/fsdp/_init_utils.py", line 598, in _init_param_handle_from_module
-[rank0]:     _move_module_to_device(
-[rank0]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/fsdp/_init_utils.py", line 991, in _move_module_to_device
-[rank0]:     _move_states_to_device(params_to_move, bufs_to_move, device_from_device_id)
-[rank0]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/fsdp/_init_utils.py", line 1021, in _move_states_to_device
-[rank0]:     param.data = param.to(device_from_device_id)
-[rank0]: torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 144.00 MiB. GPU 0 has a total capacity of 47.40 GiB of which 22.25 MiB is free. Including non-PyTorch memory, this process has 47.37 GiB memory in use. Of the allocated memory 46.88 GiB is allocated by PyTorch, and 78.50 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
-[rank2]: Traceback (most recent call last):
-[rank2]:   File "/home/yanzhang/kontext_train_ds2/./train/train_ds2_replace5k.py", line 329, in <module>
-[rank2]:     main()
-[rank2]:   File "/home/yanzhang/kontext_train_ds2/./train/train_ds2_replace5k.py", line 176, in main
-[rank2]:     dit, optimizer, dataloader= accelerator.prepare(dit, optimizer, dataloader)
-[rank2]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/accelerator.py", line 1398, in prepare
-[rank2]:     result = tuple(
-[rank2]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/accelerator.py", line 1399, in <genexpr>
-[rank2]:     self._prepare_one(obj, first_pass=True, device_placement=d) for obj, d in zip(args, device_placement)
-[rank2]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/accelerator.py", line 1272, in _prepare_one
-[rank2]:     return self.prepare_model(obj, device_placement=device_placement)
-[rank2]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/accelerator.py", line 1593, in prepare_model
-[rank2]:     model = FSDP(model, **kwargs)
-[rank2]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/fsdp/fully_sharded_data_parallel.py", line 499, in __init__
-[rank2]:     _init_param_handle_from_module(
-[rank2]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/fsdp/_init_utils.py", line 598, in _init_param_handle_from_module
-[rank2]:     _move_module_to_device(
-[rank2]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/fsdp/_init_utils.py", line 991, in _move_module_to_device
-[rank2]:     _move_states_to_device(params_to_move, bufs_to_move, device_from_device_id)
-[rank2]:   File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/fsdp/_init_utils.py", line 1021, in _move_states_to_device
-[rank2]:     param.data = param.to(device_from_device_id)
-[rank2]: torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 144.00 MiB. GPU 2 has a total capacity of 47.40 GiB of which 26.25 MiB is free. Including non-PyTorch memory, this process has 47.37 GiB memory in use. Of the allocated memory 46.88 GiB is allocated by PyTorch, and 78.50 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
-W0124 06:50:42.653000 270933 site-packages/torch/distributed/elastic/multiprocessing/api.py:900] Sending process 271137 closing signal SIGTERM
-W0124 06:50:42.654000 270933 site-packages/torch/distributed/elastic/multiprocessing/api.py:900] Sending process 271139 closing signal SIGTERM
-E0124 06:50:43.619000 270933 site-packages/torch/distributed/elastic/multiprocessing/api.py:874] failed (exitcode: 1) local_rank: 1 (pid: 271138) of binary: /home/yanzhang/.conda/envs/omini/bin/python
-Traceback (most recent call last):
-  File "/home/yanzhang/.conda/envs/omini/bin/accelerate", line 8, in <module>
-    sys.exit(main())
-  File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/commands/accelerate_cli.py", line 48, in main
-    args.func(args)
-  File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/commands/launch.py", line 1179, in launch_command
-    multi_gpu_launcher(args)
-  File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/accelerate/commands/launch.py", line 810, in multi_gpu_launcher
-    distrib_run.run(args)
-  File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/run.py", line 883, in run
-    elastic_launch(
-  File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/launcher/api.py", line 139, in __call__
-    return launch_agent(self._config, self._entrypoint, list(args))
-  File "/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/distributed/launcher/api.py", line 270, in launch_agent
-    raise ChildFailedError(
-torch.distributed.elastic.multiprocessing.errors.ChildFailedError: 
-============================================================
-./train/train_ds2_replace5k.py FAILED
-------------------------------------------------------------
-Failures:
-  <NO_OTHER_FAILURES>
-------------------------------------------------------------
-Root Cause (first observed failure):
-[0]:
-  time      : 2026-01-24_06:50:42
-  host      : gpu-server-3x6000
-  rank      : 1 (local_rank: 1)
-  exitcode  : 1 (pid: 271138)
-  error_file: <N/A>
-  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
-============================================================
+Loading weights:   0%|          | 0/219 [00:00<?, ?it/s]Loading weights: 100%|██████████| 219/219 [00:00<00:00, 11752.06it/s]
+Loading weights:   0%|          | 0/196 [00:00<?, ?it/s]Loading weights: 100%|██████████| 196/196 [00:00<00:00, 13365.47it/s]
+Successfully initialized PointsMapEncoder layers.
+[rank0]:[W323 08:40:26.449940340 ProcessGroupNCCL.cpp:4715] [PG ID 0 PG GUID 0 Rank 0]  using GPU 0 as device used by this process is currently unknown. This can potentially cause a hang if this rank to GPU mapping is incorrect. You can pecify device_id in init_process_group() to force use of a particular device.
+/home/yanzhang/.conda/envs/omini/lib/python3.10/site-packages/torch/utils/cpp_extension.py:2356: UserWarning: TORCH_CUDA_ARCH_LIST is not set, all archs for visible cards are included for compilation. 
+If this is not desired, please set os.environ['TORCH_CUDA_ARCH_LIST'].
+  warnings.warn(
+Before initializing optimizer states
+MA 31.71 GB         Max_MA 31.76 GB         CA 31.87 GB         Max_CA 32 GB 
+CPU Virtual Memory:  used = 68.7 GB, percent = 27.3%
+After initializing optimizer states
+MA 31.71 GB         Max_MA 31.71 GB         CA 31.87 GB         Max_CA 32 GB 
+CPU Virtual Memory:  used = 69.08 GB, percent = 27.5%
+After initializing ZeRO optimizer
+MA 31.71 GB         Max_MA 31.71 GB         CA 31.87 GB         Max_CA 32 GB 
+CPU Virtual Memory:  used = 69.08 GB, percent = 27.5%
+INFO:__main__:Here are the trainable params
+INFO:__main__:['module.dit.transformer_blocks.0.attn.to_q.lora_A.edit.weight', 'module.dit.transformer_blocks.0.attn.to_q.lora_B.edit.weight', 'module.dit.transformer_blocks.0.attn.to_k.lora_A.edit.weight', 'module.dit.transformer_blocks.0.attn.to_k.lora_B.edit.weight', 'module.dit.transformer_blocks.0.attn.to_v.lora_A.edit.weight', 'module.dit.transformer_blocks.0.attn.to_v.lora_B.edit.weight', 'module.dit.transformer_blocks.0.attn.to_out.0.lora_A.edit.weight', 'module.dit.transformer_blocks.0.attn.to_out.0.lora_B.edit.weight', 'module.dit.transformer_blocks.1.attn.to_q.lora_A.edit.weight', 'module.dit.transformer_blocks.1.attn.to_q.lora_B.edit.weight', 'module.dit.transformer_blocks.1.attn.to_k.lora_A.edit.weight', 'module.dit.transformer_blocks.1.attn.to_k.lora_B.edit.weight', 'module.dit.transformer_blocks.1.attn.to_v.lora_A.edit.weight', 'module.dit.transformer_blocks.1.attn.to_v.lora_B.edit.weight', 'module.dit.transformer_blocks.1.attn.to_out.0.lora_A.edit.weight', 'module.dit.transformer_blocks.1.attn.to_out.0.lora_B.edit.weight', 'module.dit.transformer_blocks.2.attn.to_q.lora_A.edit.weight', 'module.dit.transformer_blocks.2.attn.to_q.lora_B.edit.weight', 'module.dit.transformer_blocks.2.attn.to_k.lora_A.edit.weight', 'module.dit.transformer_blocks.2.attn.to_k.lora_B.edit.weight', 'module.dit.transformer_blocks.2.attn.to_v.lora_A.edit.weight', 'module.dit.transformer_blocks.2.attn.to_v.lora_B.edit.weight', 'module.dit.transformer_blocks.2.attn.to_out.0.lora_A.edit.weight', 'module.dit.transformer_blocks.2.attn.to_out.0.lora_B.edit.weight', 'module.dit.transformer_blocks.3.attn.to_q.lora_A.edit.weight', 'module.dit.transformer_blocks.3.attn.to_q.lora_B.edit.weight', 'module.dit.transformer_blocks.3.attn.to_k.lora_A.edit.weight', 'module.dit.transformer_blocks.3.attn.to_k.lora_B.edit.weight', 'module.dit.transformer_blocks.3.attn.to_v.lora_A.edit.weight', 'module.dit.transformer_blocks.3.attn.to_v.lora_B.edit.weight', 'module.dit.transformer_blocks.3.attn.to_out.0.lora_A.edit.weight', 'module.dit.transformer_blocks.3.attn.to_out.0.lora_B.edit.weight', 'module.dit.transformer_blocks.4.attn.to_q.lora_A.edit.weight', 'module.dit.transformer_blocks.4.attn.to_q.lora_B.edit.weight', 'module.dit.transformer_blocks.4.attn.to_k.lora_A.edit.weight', 'module.dit.transformer_blocks.4.attn.to_k.lora_B.edit.weight', 'module.dit.transformer_blocks.4.attn.to_v.lora_A.edit.weight', 'module.dit.transformer_blocks.4.attn.to_v.lora_B.edit.weight', 'module.dit.transformer_blocks.4.attn.to_out.0.lora_A.edit.weight', 'module.dit.transformer_blocks.4.attn.to_out.0.lora_B.edit.weight', 'module.dit.transformer_blocks.5.attn.to_q.lora_A.edit.weight', 'module.dit.transformer_blocks.5.attn.to_q.lora_B.edit.weight', 'module.dit.transformer_blocks.5.attn.to_k.lora_A.edit.weight', 'module.dit.transformer_blocks.5.attn.to_k.lora_B.edit.weight', 'module.dit.transformer_blocks.5.attn.to_v.lora_A.edit.weight', 'module.dit.transformer_blocks.5.attn.to_v.lora_B.edit.weight', 'module.dit.transformer_blocks.5.attn.to_out.0.lora_A.edit.weight', 'module.dit.transformer_blocks.5.attn.to_out.0.lora_B.edit.weight', 'module.dit.transformer_blocks.6.attn.to_q.lora_A.edit.weight', 'module.dit.transformer_blocks.6.attn.to_q.lora_B.edit.weight', 'module.dit.transformer_blocks.6.attn.to_k.lora_A.edit.weight', 'module.dit.transformer_blocks.6.attn.to_k.lora_B.edit.weight', 'module.dit.transformer_blocks.6.attn.to_v.lora_A.edit.weight', 'module.dit.transformer_blocks.6.attn.to_v.lora_B.edit.weight', 'module.dit.transformer_blocks.6.attn.to_out.0.lora_A.edit.weight', 'module.dit.transformer_blocks.6.attn.to_out.0.lora_B.edit.weight', 'module.dit.transformer_blocks.7.attn.to_q.lora_A.edit.weight', 'module.dit.transformer_blocks.7.attn.to_q.lora_B.edit.weight', 'module.dit.transformer_blocks.7.attn.to_k.lora_A.edit.weight', 'module.dit.transformer_blocks.7.attn.to_k.lora_B.edit.weight', 'module.dit.transformer_blocks.7.attn.to_v.lora_A.edit.weight', 'module.dit.transformer_blocks.7.attn.to_v.lora_B.edit.weight', 'module.dit.transformer_blocks.7.attn.to_out.0.lora_A.edit.weight', 'module.dit.transformer_blocks.7.attn.to_out.0.lora_B.edit.weight', 'module.dit.transformer_blocks.8.attn.to_q.lora_A.edit.weight', 'module.dit.transformer_blocks.8.attn.to_q.lora_B.edit.weight', 'module.dit.transformer_blocks.8.attn.to_k.lora_A.edit.weight', 'module.dit.transformer_blocks.8.attn.to_k.lora_B.edit.weight', 'module.dit.transformer_blocks.8.attn.to_v.lora_A.edit.weight', 'module.dit.transformer_blocks.8.attn.to_v.lora_B.edit.weight', 'module.dit.transformer_blocks.8.attn.to_out.0.lora_A.edit.weight', 'module.dit.transformer_blocks.8.attn.to_out.0.lora_B.edit.weight', 'module.dit.transformer_blocks.9.attn.to_q.lora_A.edit.weight', 'module.dit.transformer_blocks.9.attn.to_q.lora_B.edit.weight', 'module.dit.transformer_blocks.9.attn.to_k.lora_A.edit.weight', 'module.dit.transformer_blocks.9.attn.to_k.lora_B.edit.weight', 'module.dit.transformer_blocks.9.attn.to_v.lora_A.edit.weight', 'module.dit.transformer_blocks.9.attn.to_v.lora_B.edit.weight', 'module.dit.transformer_blocks.9.attn.to_out.0.lora_A.edit.weight', 'module.dit.transformer_blocks.9.attn.to_out.0.lora_B.edit.weight', 'module.dit.transformer_blocks.10.attn.to_q.lora_A.edit.weight', 'module.dit.transformer_blocks.10.attn.to_q.lora_B.edit.weight', 'module.dit.transformer_blocks.10.attn.to_k.lora_A.edit.weight', 'module.dit.transformer_blocks.10.attn.to_k.lora_B.edit.weight', 'module.dit.transformer_blocks.10.attn.to_v.lora_A.edit.weight', 'module.dit.transformer_blocks.10.attn.to_v.lora_B.edit.weight', 'module.dit.transformer_blocks.10.attn.to_out.0.lora_A.edit.weight', 'module.dit.transformer_blocks.10.attn.to_out.0.lora_B.edit.weight', 'module.dit.transformer_blocks.11.attn.to_q.lora_A.edit.weight', 'module.dit.transformer_blocks.11.attn.to_q.lora_B.edit.weight', 'module.dit.transformer_blocks.11.attn.to_k.lora_A.edit.weight', 'module.dit.transformer_blocks.11.attn.to_k.lora_B.edit.weight', 'module.dit.transformer_blocks.11.attn.to_v.lora_A.edit.weight', 'module.dit.transformer_blocks.11.attn.to_v.lora_B.edit.weight', 'module.dit.transformer_blocks.11.attn.to_out.0.lora_A.edit.weight', 'module.dit.transformer_blocks.11.attn.to_out.0.lora_B.edit.weight', 'module.dit.transformer_blocks.12.attn.to_q.lora_A.edit.weight', 'module.dit.transformer_blocks.12.attn.to_q.lora_B.edit.weight', 'module.dit.transformer_blocks.12.attn.to_k.lora_A.edit.weight', 'module.dit.transformer_blocks.12.attn.to_k.lora_B.edit.weight', 'module.dit.transformer_blocks.12.attn.to_v.lora_A.edit.weight', 'module.dit.transformer_blocks.12.attn.to_v.lora_B.edit.weight', 'module.dit.transformer_blocks.12.attn.to_out.0.lora_A.edit.weight', 'module.dit.transformer_blocks.12.attn.to_out.0.lora_B.edit.weight', 'module.dit.transformer_blocks.13.attn.to_q.lora_A.edit.weight', 'module.dit.transformer_blocks.13.attn.to_q.lora_B.edit.weight', 'module.dit.transformer_blocks.13.attn.to_k.lora_A.edit.weight', 'module.dit.transformer_blocks.13.attn.to_k.lora_B.edit.weight', 'module.dit.transformer_blocks.13.attn.to_v.lora_A.edit.weight', 'module.dit.transformer_blocks.13.attn.to_v.lora_B.edit.weight', 'module.dit.transformer_blocks.13.attn.to_out.0.lora_A.edit.weight', 'module.dit.transformer_blocks.13.attn.to_out.0.lora_B.edit.weight', 'module.dit.transformer_blocks.14.attn.to_q.lora_A.edit.weight', 'module.dit.transformer_blocks.14.attn.to_q.lora_B.edit.weight', 'module.dit.transformer_blocks.14.attn.to_k.lora_A.edit.weight', 'module.dit.transformer_blocks.14.attn.to_k.lora_B.edit.weight', 'module.dit.transformer_blocks.14.attn.to_v.lora_A.edit.weight', 'module.dit.transformer_blocks.14.attn.to_v.lora_B.edit.weight', 'module.dit.transformer_blocks.14.attn.to_out.0.lora_A.edit.weight', 'module.dit.transformer_blocks.14.attn.to_out.0.lora_B.edit.weight', 'module.dit.transformer_blocks.15.attn.to_q.lora_A.edit.weight', 'module.dit.transformer_blocks.15.attn.to_q.lora_B.edit.weight', 'module.dit.transformer_blocks.15.attn.to_k.lora_A.edit.weight', 'module.dit.transformer_blocks.15.attn.to_k.lora_B.edit.weight', 'module.dit.transformer_blocks.15.attn.to_v.lora_A.edit.weight', 'module.dit.transformer_blocks.15.attn.to_v.lora_B.edit.weight', 'module.dit.transformer_blocks.15.attn.to_out.0.lora_A.edit.weight', 'module.dit.transformer_blocks.15.attn.to_out.0.lora_B.edit.weight', 'module.dit.transformer_blocks.16.attn.to_q.lora_A.edit.weight', 'module.dit.transformer_blocks.16.attn.to_q.lora_B.edit.weight', 'module.dit.transformer_blocks.16.attn.to_k.lora_A.edit.weight', 'module.dit.transformer_blocks.16.attn.to_k.lora_B.edit.weight', 'module.dit.transformer_blocks.16.attn.to_v.lora_A.edit.weight', 'module.dit.transformer_blocks.16.attn.to_v.lora_B.edit.weight', 'module.dit.transformer_blocks.16.attn.to_out.0.lora_A.edit.weight', 'module.dit.transformer_blocks.16.attn.to_out.0.lora_B.edit.weight', 'module.dit.transformer_blocks.17.attn.to_q.lora_A.edit.weight', 'module.dit.transformer_blocks.17.attn.to_q.lora_B.edit.weight', 'module.dit.transformer_blocks.17.attn.to_k.lora_A.edit.weight', 'module.dit.transformer_blocks.17.attn.to_k.lora_B.edit.weight', 'module.dit.transformer_blocks.17.attn.to_v.lora_A.edit.weight', 'module.dit.transformer_blocks.17.attn.to_v.lora_B.edit.weight', 'module.dit.transformer_blocks.17.attn.to_out.0.lora_A.edit.weight', 'module.dit.transformer_blocks.17.attn.to_out.0.lora_B.edit.weight', 'module.dit.transformer_blocks.18.attn.to_q.lora_A.edit.weight', 'module.dit.transformer_blocks.18.attn.to_q.lora_B.edit.weight', 'module.dit.transformer_blocks.18.attn.to_k.lora_A.edit.weight', 'module.dit.transformer_blocks.18.attn.to_k.lora_B.edit.weight', 'module.dit.transformer_blocks.18.attn.to_v.lora_A.edit.weight', 'module.dit.transformer_blocks.18.attn.to_v.lora_B.edit.weight', 'module.dit.transformer_blocks.18.attn.to_out.0.lora_A.edit.weight', 'module.dit.transformer_blocks.18.attn.to_out.0.lora_B.edit.weight', 'module.dit.single_transformer_blocks.0.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.0.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.0.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.0.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.0.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.0.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.1.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.1.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.1.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.1.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.1.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.1.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.2.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.2.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.2.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.2.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.2.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.2.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.3.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.3.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.3.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.3.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.3.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.3.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.4.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.4.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.4.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.4.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.4.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.4.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.5.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.5.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.5.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.5.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.5.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.5.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.6.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.6.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.6.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.6.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.6.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.6.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.7.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.7.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.7.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.7.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.7.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.7.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.8.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.8.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.8.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.8.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.8.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.8.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.9.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.9.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.9.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.9.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.9.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.9.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.10.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.10.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.10.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.10.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.10.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.10.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.11.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.11.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.11.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.11.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.11.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.11.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.12.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.12.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.12.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.12.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.12.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.12.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.13.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.13.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.13.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.13.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.13.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.13.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.14.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.14.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.14.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.14.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.14.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.14.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.15.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.15.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.15.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.15.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.15.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.15.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.16.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.16.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.16.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.16.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.16.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.16.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.17.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.17.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.17.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.17.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.17.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.17.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.18.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.18.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.18.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.18.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.18.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.18.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.19.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.19.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.19.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.19.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.19.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.19.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.20.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.20.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.20.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.20.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.20.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.20.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.21.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.21.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.21.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.21.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.21.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.21.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.22.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.22.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.22.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.22.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.22.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.22.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.23.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.23.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.23.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.23.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.23.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.23.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.24.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.24.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.24.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.24.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.24.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.24.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.25.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.25.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.25.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.25.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.25.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.25.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.26.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.26.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.26.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.26.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.26.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.26.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.27.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.27.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.27.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.27.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.27.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.27.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.28.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.28.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.28.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.28.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.28.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.28.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.29.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.29.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.29.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.29.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.29.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.29.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.30.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.30.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.30.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.30.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.30.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.30.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.31.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.31.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.31.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.31.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.31.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.31.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.32.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.32.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.32.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.32.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.32.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.32.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.33.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.33.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.33.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.33.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.33.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.33.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.34.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.34.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.34.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.34.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.34.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.34.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.35.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.35.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.35.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.35.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.35.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.35.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.36.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.36.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.36.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.36.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.36.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.36.attn.to_v.lora_B.edit.weight', 'module.dit.single_transformer_blocks.37.attn.to_q.lora_A.edit.weight', 'module.dit.single_transformer_blocks.37.attn.to_q.lora_B.edit.weight', 'module.dit.single_transformer_blocks.37.attn.to_k.lora_A.edit.weight', 'module.dit.single_transformer_blocks.37.attn.to_k.lora_B.edit.weight', 'module.dit.single_transformer_blocks.37.attn.to_v.lora_A.edit.weight', 'module.dit.single_transformer_blocks.37.attn.to_v.lora_B.edit.weight', 'module.points_map_encoder.conv_in.weight', 'module.points_map_encoder.conv_in.bias', 'module.points_map_encoder.down_blocks.0.resnets.0.norm1.weight', 'module.points_map_encoder.down_blocks.0.resnets.0.norm1.bias', 'module.points_map_encoder.down_blocks.0.resnets.0.conv1.weight', 'module.points_map_encoder.down_blocks.0.resnets.0.conv1.bias', 'module.points_map_encoder.down_blocks.0.resnets.0.norm2.weight', 'module.points_map_encoder.down_blocks.0.resnets.0.norm2.bias', 'module.points_map_encoder.down_blocks.0.resnets.0.conv2.weight', 'module.points_map_encoder.down_blocks.0.resnets.0.conv2.bias', 'module.points_map_encoder.down_blocks.0.resnets.1.norm1.weight', 'module.points_map_encoder.down_blocks.0.resnets.1.norm1.bias', 'module.points_map_encoder.down_blocks.0.resnets.1.conv1.weight', 'module.points_map_encoder.down_blocks.0.resnets.1.conv1.bias', 'module.points_map_encoder.down_blocks.0.resnets.1.norm2.weight', 'module.points_map_encoder.down_blocks.0.resnets.1.norm2.bias', 'module.points_map_encoder.down_blocks.0.resnets.1.conv2.weight', 'module.points_map_encoder.down_blocks.0.resnets.1.conv2.bias', 'module.points_map_encoder.down_blocks.0.downsamplers.0.conv.weight', 'module.points_map_encoder.down_blocks.0.downsamplers.0.conv.bias', 'module.points_map_encoder.down_blocks.1.resnets.0.norm1.weight', 'module.points_map_encoder.down_blocks.1.resnets.0.norm1.bias', 'module.points_map_encoder.down_blocks.1.resnets.0.conv1.weight', 'module.points_map_encoder.down_blocks.1.resnets.0.conv1.bias', 'module.points_map_encoder.down_blocks.1.resnets.0.norm2.weight', 'module.points_map_encoder.down_blocks.1.resnets.0.norm2.bias', 'module.points_map_encoder.down_blocks.1.resnets.0.conv2.weight', 'module.points_map_encoder.down_blocks.1.resnets.0.conv2.bias', 'module.points_map_encoder.down_blocks.1.resnets.0.conv_shortcut.weight', 'module.points_map_encoder.down_blocks.1.resnets.0.conv_shortcut.bias', 'module.points_map_encoder.down_blocks.1.resnets.1.norm1.weight', 'module.points_map_encoder.down_blocks.1.resnets.1.norm1.bias', 'module.points_map_encoder.down_blocks.1.resnets.1.conv1.weight', 'module.points_map_encoder.down_blocks.1.resnets.1.conv1.bias', 'module.points_map_encoder.down_blocks.1.resnets.1.norm2.weight', 'module.points_map_encoder.down_blocks.1.resnets.1.norm2.bias', 'module.points_map_encoder.down_blocks.1.resnets.1.conv2.weight', 'module.points_map_encoder.down_blocks.1.resnets.1.conv2.bias', 'module.points_map_encoder.down_blocks.1.downsamplers.0.conv.weight', 'module.points_map_encoder.down_blocks.1.downsamplers.0.conv.bias', 'module.points_map_encoder.down_blocks.2.resnets.0.norm1.weight', 'module.points_map_encoder.down_blocks.2.resnets.0.norm1.bias', 'module.points_map_encoder.down_blocks.2.resnets.0.conv1.weight', 'module.points_map_encoder.down_blocks.2.resnets.0.conv1.bias', 'module.points_map_encoder.down_blocks.2.resnets.0.norm2.weight', 'module.points_map_encoder.down_blocks.2.resnets.0.norm2.bias', 'module.points_map_encoder.down_blocks.2.resnets.0.conv2.weight', 'module.points_map_encoder.down_blocks.2.resnets.0.conv2.bias', 'module.points_map_encoder.down_blocks.2.resnets.0.conv_shortcut.weight', 'module.points_map_encoder.down_blocks.2.resnets.0.conv_shortcut.bias', 'module.points_map_encoder.down_blocks.2.resnets.1.norm1.weight', 'module.points_map_encoder.down_blocks.2.resnets.1.norm1.bias', 'module.points_map_encoder.down_blocks.2.resnets.1.conv1.weight', 'module.points_map_encoder.down_blocks.2.resnets.1.conv1.bias', 'module.points_map_encoder.down_blocks.2.resnets.1.norm2.weight', 'module.points_map_encoder.down_blocks.2.resnets.1.norm2.bias', 'module.points_map_encoder.down_blocks.2.resnets.1.conv2.weight', 'module.points_map_encoder.down_blocks.2.resnets.1.conv2.bias', 'module.points_map_encoder.down_blocks.2.downsamplers.0.conv.weight', 'module.points_map_encoder.down_blocks.2.downsamplers.0.conv.bias', 'module.points_map_encoder.down_blocks.3.resnets.0.norm1.weight', 'module.points_map_encoder.down_blocks.3.resnets.0.norm1.bias', 'module.points_map_encoder.down_blocks.3.resnets.0.conv1.weight', 'module.points_map_encoder.down_blocks.3.resnets.0.conv1.bias', 'module.points_map_encoder.down_blocks.3.resnets.0.norm2.weight', 'module.points_map_encoder.down_blocks.3.resnets.0.norm2.bias', 'module.points_map_encoder.down_blocks.3.resnets.0.conv2.weight', 'module.points_map_encoder.down_blocks.3.resnets.0.conv2.bias', 'module.points_map_encoder.down_blocks.3.resnets.1.norm1.weight', 'module.points_map_encoder.down_blocks.3.resnets.1.norm1.bias', 'module.points_map_encoder.down_blocks.3.resnets.1.conv1.weight', 'module.points_map_encoder.down_blocks.3.resnets.1.conv1.bias', 'module.points_map_encoder.down_blocks.3.resnets.1.norm2.weight', 'module.points_map_encoder.down_blocks.3.resnets.1.norm2.bias', 'module.points_map_encoder.down_blocks.3.resnets.1.conv2.weight', 'module.points_map_encoder.down_blocks.3.resnets.1.conv2.bias', 'module.points_map_encoder.down_blocks.3.downsamplers.0.conv.weight', 'module.points_map_encoder.down_blocks.3.downsamplers.0.conv.bias', 'module.points_map_encoder.conv_norm_out.weight', 'module.points_map_encoder.conv_norm_out.bias', 'module.points_map_encoder.conv_out.weight', 'module.points_map_encoder.conv_out.bias']
+INFO:__main__:***** Running training *****
+INFO:__main__:Step 1, Loss: 0.8249
+INFO:__main__:Step 2, Loss: 1.3210
+INFO:__main__:Step 3, Loss: 0.8007
+INFO:__main__:Step 4, Loss: 2.2715
+INFO:__main__:Step 5, Loss: 0.9880
+INFO:__main__:Step 6, Loss: 0.8875
+INFO:__main__:Step 7, Loss: 3.8301
+INFO:__main__:Step 8, Loss: 0.6408
+INFO:__main__:Step 9, Loss: 0.7150
+INFO:__main__:Step 10, Loss: 0.9164
+INFO:__main__:Step 11, Loss: 0.7020
+INFO:__main__:Step 12, Loss: 0.8186
+INFO:__main__:Step 13, Loss: 0.6141
+INFO:__main__:Step 14, Loss: 0.6168
+INFO:__main__:Step 15, Loss: 0.5806
+INFO:__main__:Step 16, Loss: 1.0225
+INFO:__main__:Step 17, Loss: 0.6732
+INFO:__main__:Step 18, Loss: 0.7776
+INFO:__main__:Step 19, Loss: 0.7183
+INFO:__main__:Step 20, Loss: 0.5578
+INFO:__main__:Step 21, Loss: 1.1074
+INFO:__main__:Step 22, Loss: 0.3169
+INFO:__main__:Step 23, Loss: 0.7892
+INFO:__main__:Step 24, Loss: 1.3021
+INFO:__main__:Step 25, Loss: 0.6211
+INFO:__main__:Step 26, Loss: 0.8415
+INFO:__main__:Step 27, Loss: 0.4887
+INFO:__main__:Step 28, Loss: 0.5920
+INFO:__main__:Step 29, Loss: 0.6556
+INFO:__main__:Step 30, Loss: 0.4277
+INFO:__main__:Step 31, Loss: 0.4653
+INFO:__main__:Step 32, Loss: 0.4548
+INFO:__main__:Step 33, Loss: 0.4893
+INFO:__main__:Step 34, Loss: 0.4155
+INFO:__main__:Step 35, Loss: 0.5749
+INFO:__main__:Step 36, Loss: 0.5538
+INFO:__main__:Step 37, Loss: 0.6075
+INFO:__main__:Step 38, Loss: 0.6094
+INFO:__main__:Step 39, Loss: 0.4646
+INFO:__main__:Step 40, Loss: 0.2841
+INFO:__main__:Step 41, Loss: 0.3388
+INFO:__main__:Step 42, Loss: 0.8986
+INFO:__main__:Step 43, Loss: 0.3586
+INFO:__main__:Step 44, Loss: 0.3223
+INFO:__main__:Step 45, Loss: 0.4599
+INFO:__main__:Step 46, Loss: 0.4036
+INFO:__main__:Step 47, Loss: 0.6301
+INFO:__main__:Step 48, Loss: 0.6254
+INFO:__main__:Step 49, Loss: 0.6172
+INFO:__main__:Step 50, Loss: 0.3307
+INFO:__main__:Step 51, Loss: 0.7227
+INFO:__main__:Step 52, Loss: 0.4689
+INFO:__main__:Step 53, Loss: 0.3786
+INFO:__main__:Step 54, Loss: 1.2333
+INFO:__main__:Step 55, Loss: 0.5646
+INFO:__main__:Step 56, Loss: 0.4004
+INFO:__main__:Step 57, Loss: 0.3552
+INFO:__main__:Step 58, Loss: 0.3062
+INFO:__main__:Step 59, Loss: 0.3613
+INFO:__main__:Step 60, Loss: 0.8386
+INFO:__main__:Step 61, Loss: 0.3429
+INFO:__main__:Step 62, Loss: 0.3278
+INFO:__main__:Step 63, Loss: 0.6256
+INFO:__main__:Step 64, Loss: 0.3520
+INFO:__main__:Step 65, Loss: 0.4516
+INFO:__main__:Step 66, Loss: 0.3875
+INFO:__main__:Step 67, Loss: 0.4263
+INFO:__main__:Step 68, Loss: 0.3484
+INFO:__main__:Step 69, Loss: 0.4026
+INFO:__main__:Step 70, Loss: 0.5030
+INFO:__main__:Step 71, Loss: 0.6633
+INFO:__main__:Step 72, Loss: 0.3499
+INFO:__main__:Step 73, Loss: 0.2699
+INFO:__main__:Step 74, Loss: 0.4236
+INFO:__main__:Step 75, Loss: 0.3874
+INFO:__main__:Step 76, Loss: 0.3776
+INFO:__main__:Step 77, Loss: 0.5821
+INFO:__main__:Step 78, Loss: 0.3184
+INFO:__main__:Step 79, Loss: 0.8547
+INFO:__main__:Step 80, Loss: 0.5735
+INFO:__main__:Step 81, Loss: 0.3223
+INFO:__main__:Step 82, Loss: 0.3049
+INFO:__main__:Step 83, Loss: 0.5775
+INFO:__main__:Step 84, Loss: 0.5307
+INFO:__main__:Step 85, Loss: 0.2926
+INFO:__main__:Step 86, Loss: 0.2834
+INFO:__main__:Step 87, Loss: 0.3420
+INFO:__main__:Step 88, Loss: 0.3093
+INFO:__main__:Step 89, Loss: 0.3529
+INFO:__main__:Step 90, Loss: 0.4066
+INFO:__main__:Step 91, Loss: 0.7660
+INFO:__main__:Step 92, Loss: 0.4421
+INFO:__main__:Step 93, Loss: 0.2375
+INFO:__main__:Step 94, Loss: 0.2890
+INFO:__main__:Step 95, Loss: 1.4047
+INFO:__main__:Step 96, Loss: 0.3336
+INFO:__main__:Step 97, Loss: 0.3138
+INFO:__main__:Step 98, Loss: 0.3337
+INFO:__main__:Step 99, Loss: 0.4520
+INFO:__main__:Step 100, Loss: 0.1773
+INFO:__main__:Step 101, Loss: 0.4123
+INFO:__main__:Step 102, Loss: 0.3373
+INFO:__main__:Step 103, Loss: 0.3913
+INFO:__main__:Step 104, Loss: 0.4455
+INFO:__main__:Step 105, Loss: 0.2478
+INFO:__main__:Step 106, Loss: 0.3823
+INFO:__main__:Step 107, Loss: 0.3404
+INFO:__main__:Step 108, Loss: 0.3711
+INFO:__main__:Step 109, Loss: 0.1820
+INFO:__main__:Step 110, Loss: 0.4822
+INFO:__main__:Step 111, Loss: 0.4974
+INFO:__main__:Step 112, Loss: 0.4295
+INFO:__main__:Step 113, Loss: 0.3454
+INFO:__main__:Step 114, Loss: 0.3959
+INFO:__main__:Step 115, Loss: 0.2889
+INFO:__main__:Step 116, Loss: 0.3196
+INFO:__main__:Step 117, Loss: 0.2690
+INFO:__main__:Step 118, Loss: 0.3672
+INFO:__main__:Step 119, Loss: 0.4622
+INFO:__main__:Step 120, Loss: 0.5785
+INFO:__main__:Step 121, Loss: 0.4390
+INFO:__main__:Step 122, Loss: 0.6008
+INFO:__main__:Step 123, Loss: 0.3093
+INFO:__main__:Step 124, Loss: 0.3508
+INFO:__main__:Step 125, Loss: 0.7067
+INFO:__main__:Step 126, Loss: 0.4772
+INFO:__main__:Step 127, Loss: 0.2700
+INFO:__main__:Step 128, Loss: 0.2717
+INFO:__main__:Step 129, Loss: 0.4836
+INFO:__main__:Step 130, Loss: 0.3417
+INFO:__main__:Step 131, Loss: 0.3979
+INFO:__main__:Step 132, Loss: 0.2906
+INFO:__main__:Step 133, Loss: 0.2120
+INFO:__main__:Step 134, Loss: 0.3283
+INFO:__main__:Step 135, Loss: 0.3249
+INFO:__main__:Step 136, Loss: 0.2500
+INFO:__main__:Step 137, Loss: 0.2873
+INFO:__main__:Step 138, Loss: 0.4374
+INFO:__main__:Step 139, Loss: 0.3191
+INFO:__main__:Step 140, Loss: 0.2619
+INFO:__main__:Step 141, Loss: 0.3171
+INFO:__main__:Step 142, Loss: 0.3130
+INFO:__main__:Step 143, Loss: 0.3339
