@@ -115,7 +115,7 @@ def parse_args():
     parser.add_argument("--save_steps", type=int, default=500)
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--max_grad_norm", type=float, default=1.0)
-    parser.add_argument("--checkpoints_total_limit", type=int, default=10)
+    parser.add_argument("--checkpoints_total_limit", type=int, default=20)
     parser.add_argument("--resume_lora_path", type=str, default=None)
     parser.add_argument("--resume_points_map_encoder_path", type=str, default=None)
     args = parser.parse_args()
@@ -141,6 +141,37 @@ def _prepare_latent_image_ids(batch_size, height, width, device, dtype):
 def time_shift(mu: float, sigma: float, t: torch.Tensor):
     # Flux 推荐的 shift 逻辑
     return math.exp(mu) * t / (1 + (math.exp(mu) - 1) * t)
+
+# from PIL import Image,ImageDraw
+# def check_match(images, points, save_path="check_points.png"):
+#     # images: [b, c, h, w], 假设范围在 [-1, 1]
+#     # points: [b, n, 2], 假设坐标是像素坐标 (x, y)
+    
+#     # 1. 提取第一张图并转换格式
+#     img_tensor = images[0].detach().cpu()
+#     img_np = (img_tensor + 1) * 127.5
+#     img_np = img_np.clamp(0, 255).permute(1, 2, 0).numpy().astype('uint8')
+    
+#     # 2. 转换为 PIL Image
+#     img_pil = Image.fromarray(img_np)
+#     draw = ImageDraw.Draw(img_pil)
+    
+#     # 3. 提取点位坐标
+#     pts = points[0].detach().cpu().numpy() # [n, 2]
+    
+#     # 4. 遍历并画圆
+#     radius = 3
+#     for x, y in pts:
+#         # 定义圆的左上角和右下角坐标
+#         left_up = (x - radius, y - radius)
+#         right_down = (x + radius, y + radius)
+#         # outline 为圆周颜色，fill 为填充颜色
+#         draw.ellipse([left_up, right_down], outline="red", width=2)
+    
+#     # 5. 保存图像
+#     img_pil.save(save_path)
+#     print(f"Saved visualization to {save_path}")
+    
 
 if is_wandb_available():
     import wandb
@@ -196,6 +227,7 @@ def main():
     clip = clip.to(accelerator.device)
     vae = vae.to(accelerator.device)
     dit._initialize_custom_layers()
+
     points_map_encoder._initialize_layers()
 
     vae.requires_grad_(False)
@@ -212,13 +244,14 @@ def main():
     model.points_map_encoder.requires_grad_(True)
     model.dit.enable_gradient_checkpointing()
     
-    # 注入 LoRA 层
+    # 注入 LoRA 层, 先开lora，后开其他层
     lora_rank = ARGS.lora_rank
     lora_alpha = ARGS.lora_alpha
     lora_config = LoraConfig(
         r=lora_rank, lora_alpha=lora_alpha, target_modules=["to_q", "to_v", "to_k", "to_out.0"], lora_dropout=0.05
     )
     model.dit.add_adapter(lora_config, adapter_name="edit")
+    model.dit.points_embedder.requires_grad_(True)
 
     # 断点重训
     if ARGS.resume_lora_path is not None:
@@ -289,7 +322,7 @@ def main():
                 tgt_points = batch["tgt_points"]
 
                 batch_size = src_images.shape[0]
-                instructions = ["Drag the image according to the given points mapping embeddings."] * batch_size  # 或者给一个合适的instrcution
+                instructions = [""] * batch_size  # 或者给一个合适的instrcution
 
                 with torch.no_grad():
                     prompts = instructions
@@ -334,7 +367,7 @@ def main():
                     
                     # timestep
                     t_raw = torch.rand(batch_size, 1, 1, device=accelerator.device)   # 可能要加time shift
-                    t = time_shift(mu=3, sigma=0, t=t_raw)
+                    t = time_shift(mu=1.1, sigma=0, t=t_raw)
 
                     # sample & add_noise
                     x_1 = torch.randn_like(tgt_image_latents).to(accelerator.device)
@@ -344,6 +377,10 @@ def main():
                 latent_model_input = torch.cat([x_t, src_image_latents], dim=1)
                 latent_ids = torch.cat([tgt_image_ids, src_image_ids], dim=0)
                 guidance = torch.full((x_t.shape[0],), 1, device=x_t.device)
+
+                # 
+                # check_match(src_images, src_points, "src.jpg")
+                # check_match(tgt_images, tgt_points, "tgt.jpg")
 
                 # 还需要修改dit的第一个conv_in
                 noise_pred = model(
@@ -402,7 +439,7 @@ def main():
                                     shutil.rmtree(removing_checkpoint)
 
                         unwrapped_model_state = accelerator.unwrap_model(dit).state_dict()
-                        lora_state_dict = {"transformer." + k: unwrapped_model_state[k] for k in unwrapped_model_state.keys() if 'lora' in k}
+                        lora_state_dict = {"transformer." + k: unwrapped_model_state[k] for k in unwrapped_model_state.keys() if 'lora' in k or 'points' in k}
                         save_file(
                             lora_state_dict,
                             os.path.join(save_path, "lora.safetensors")

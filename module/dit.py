@@ -131,6 +131,11 @@ class FluxTransformer2DPointsModel(
         torch.nn.init.kaiming_normal_(self.points_embedder.weight)
         if self.points_embedder.bias is not None:
             torch.nn.init.zeros_(self.points_embedder.bias)
+    
+    def check_nan(self, param, layer_name, layer_id, param_name):
+        if torch.isnan(param).any():
+            print(f"❌ [NaN Detected] Layer: {layer_name} ({layer_id}) | Param: {param_name}")
+        return True
 
     @property
     # Copied from diffusers.models.unets.unet_2d_condition.UNet2DConditionModel.attn_processors
@@ -292,15 +297,17 @@ class FluxTransformer2DPointsModel(
         hidden_states = self.x_embedder(hidden_states)
 
         # points_emb嵌入
-        points_emb = self.points_embedder(points_emb)
-        hidden_states = hidden_states + points_emb
+
+        if points_emb is not None:
+            points_emb = self.points_embedder(points_emb)
+            hidden_states = hidden_states + points_emb
 
         timestep = timestep.to(hidden_states.dtype) * 1000
         if guidance is not None:
             guidance = guidance.to(hidden_states.dtype) * 1000
         else:
             guidance = None
-
+        
         temb = (
             self.time_text_embed(timestep, pooled_projections)
             if guidance is None
@@ -328,7 +335,7 @@ class FluxTransformer2DPointsModel(
             ip_adapter_image_embeds = joint_attention_kwargs.pop("ip_adapter_image_embeds")
             ip_hidden_states = self.encoder_hid_proj(ip_adapter_image_embeds)
             joint_attention_kwargs.update({"ip_hidden_states": ip_hidden_states})
-
+        
         for index_block, block in enumerate(self.transformer_blocks):
             if torch.is_grad_enabled() and self.gradient_checkpointing:
                 encoder_hidden_states, hidden_states = self._gradient_checkpointing_func(

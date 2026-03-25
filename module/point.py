@@ -256,11 +256,13 @@ class PointsMapEncoder(nn.Module):
             input_channel = output_channel
             output_channel = block_out_channels[i]
 
+            add_downsample = True if i != len(block_out_channels) - 1 else False
+
             down_block = DownEncoderBlock2D(
                 num_layers=self.layers_per_block,
                 in_channels=input_channel,
                 out_channels=output_channel,
-                add_downsample=True,
+                add_downsample=add_downsample,
                 resnet_eps=1e-6,
                 downsample_padding=0,
                 resnet_groups=norm_num_groups,
@@ -286,8 +288,11 @@ class PointsMapEncoder(nn.Module):
         sample = self.conv_act(sample)
         sample = self.conv_out(sample)
 
-        # sample序列化 [b,c,h,w] -> [b,h*w,c]
-        sample = sample.flatten(-2).permute(0,2,1)
+        # [b,c,h,w] -> [b,h*w,c]
+        B, C, H, W = sample.shape
+        sample = sample.view(B, C, H // 2, 2, W // 2, 2)
+        sample = sample.permute(0, 2, 4, 1, 3, 5)
+        sample = sample.reshape(B, (H // 2) * (W // 2), C * 4)
 
         return sample
 
@@ -328,6 +333,10 @@ class PointsMapEncoder(nn.Module):
                 if module.bias is not None:
                     nn.init.zeros_(module.bias)
         
+        # 零初始化last conv layer
+        nn.init.zeros_(self.conv_out.weight)
+        nn.init.zeros_(self.conv_out.bias)
+        
         print(f"Successfully initialized {self.__class__.__name__} layers.")
 
 def get_points_map_embedding(model, img_tensor, points, mode):
@@ -357,6 +366,6 @@ if __name__ == "__main__":
     img_tensor = torch.rand([4,3,512,512])
     points = torch.randint(low=0, high=511, size=(4,10,2))
     points_emb = get_points_map_embedding(point_map_encoder, img_tensor, points, "integer_index")
-    print(points_emb.shape)
+    # print(points_emb.shape)
 
 # conv_out是否选择零卷积层初始化？

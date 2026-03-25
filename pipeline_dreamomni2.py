@@ -41,6 +41,7 @@ from diffusers.utils import (
 from diffusers.utils.torch_utils import randn_tensor
 from diffusers.pipelines.pipeline_utils import DiffusionPipeline
 from diffusers.pipelines.flux.pipeline_output import FluxPipelineOutput
+from module.dit import FluxTransformer2DPointsModel
 
 
 if is_torch_xla_available():
@@ -232,7 +233,7 @@ class DreamOmni2Pipeline(
         tokenizer: CLIPTokenizer,
         text_encoder_2: T5EncoderModel,
         tokenizer_2: T5TokenizerFast,
-        transformer: FluxTransformer2DModel,
+        transformer: FluxTransformer2DPointsModel,
         image_encoder: CLIPVisionModelWithProjection = None,
         feature_extractor: CLIPImageProcessor = None,
     ):
@@ -738,6 +739,7 @@ class DreamOmni2Pipeline(
     def __call__(
         self,
         images: Optional[List[PipelineImageInput]] = None,
+        points_emb: Optional[torch.FloatTensor] = None,
         prompt: Union[str, List[str]] = None,
         prompt_2: Optional[Union[str, List[str]]] = None,
         negative_prompt: Union[str, List[str]] = None,
@@ -989,11 +991,15 @@ class DreamOmni2Pipeline(
             num_channels_latents,
             height,
             width,
-            prompt_embeds.dtype,
+            self.vae.dtype,
             device,
             generator,
             latents,
         )
+        latents = latents.to(self.transformer.dtype)
+        image_latents = image_latents.to(self.transformer.dtype)
+        latent_ids = latent_ids.to(self.transformer.dtype)
+        image_ids = image_ids.to(self.transformer.dtype)
         if image_ids is not None:
             latent_ids = torch.cat([latent_ids, image_ids], dim=0)  # dim 0 is sequence dimension
 
@@ -1083,6 +1089,7 @@ class DreamOmni2Pipeline(
                     txt_ids=text_ids,
                     img_ids=latent_ids,
                     joint_attention_kwargs=self.joint_attention_kwargs,
+                    points_emb=points_emb,
                     return_dict=False,
                 )[0]
                 noise_pred = noise_pred[:, : latents.size(1)]
@@ -1099,6 +1106,7 @@ class DreamOmni2Pipeline(
                         txt_ids=negative_text_ids,
                         img_ids=latent_ids,
                         joint_attention_kwargs=self.joint_attention_kwargs,
+                        points_emb=points_emb,
                         return_dict=False,
                     )[0]
                     neg_noise_pred = neg_noise_pred[:, : latents.size(1)]
@@ -1136,7 +1144,7 @@ class DreamOmni2Pipeline(
         else:
             latents = self._unpack_latents(latents, height, width, self.vae_scale_factor)
             latents = (latents / self.vae.config.scaling_factor) + self.vae.config.shift_factor
-            image = self.vae.decode(latents, return_dict=False)[0]
+            image = self.vae.decode(latents.to(self.vae.dtype), return_dict=False)[0]
             image = self.image_processor.postprocess(image, output_type=output_type)
 
         # Offload all models

@@ -6,7 +6,7 @@ unset https_proxy
 export https_proxy="http://127.0.0.1:7890"
 cd Kontext_train_ds2
 
-accelerate launch --config_file ./train/deepspeed.yaml --main_process_port 29606 ./train/train_ds2.py --num_epochs 5 --lr 1e-4 --save_steps 500 > train.log 2>&1
+accelerate launch --config_file ./train/deepspeed.yaml --main_process_port 29606 ./train/train_ds2.py --num_epochs 50 --lr 1e-4 --save_steps 500 > train.log 2>&1
 
 #异步错误处理
 当一个 GPU 节点发生 NCCL 错误时，其他节点能及时收到通知并优雅退出，而不是一直死等（卡死）。它让错误日志更清晰。
@@ -124,3 +124,52 @@ wandb login --relogin
 僵尸锁文件： 如果你之前的尝试失败了（比如崩溃或被强制强杀），那个锁文件（.lock）可能还残留在 /home/yanzhang/.cache/torch_extensions 或类似的目录里。
 无限等待： 当前进程看到锁文件已经存在，以为别的进程正在编译，于是就乖乖地在那 time.sleep 等待。但实际上，那个“正在编译”的进程早就死了，所以你的程序会永远等下去。
 解决方案：rm -rf /home/yanzhang/.cache/torch_extensions/*
+
+## 推理时图像值为NAN
+关注三个点：模型初始化、模型精度以及训推一致性，训推一致性主要是变量的维度、归一化、含义等是否对齐。
+
+问题1：dit的points_embedder没有放进优化器！
+解决1：加入优化器后，依旧NAN
+
+训练时：
+base_model = /mnt/disk1/models/FLUX.1-Kontext-dev
+dit = FluxTransformer2DPointsModel.from_pretrained(base_model, subfolder="transformer") float32
+vae = AutoencoderKL.from_pretrained(base_model, subfolder="vae") float32
+t5 = T5EncoderModel.from_pretrained(base_model, subfolder="text_encoder_2") bfloat16
+clip = CLIPTextModel.from_pretrained(base_model, subfolder="text_encoder") bfloat16
+t5_tokenizer = T5Tokenizer.from_pretrained(base_model, subfolder="tokenizer_2")
+clip_tokenizer = CLIPTokenizer.from_pretrained(base_model, subfolder="tokenizer")
+points_map_encoder_config_path = "/home/yanzhang/drag_edit/module/pme_config.json"
+with open(points_map_encoder_config_path, "r") as f:
+    points_map_encoder_config = json.load(f)
+points_map_encoder = PointsMapEncoder(**points_map_encoder_config) float32
+
+dit.points_embedder 权重kaiming初始化，bias设为0
+dit.add_adapter
+points_map_encoder Conv2d权重kaiming初始化，bias设为0；GroupNorm权重设为1，偏置设为0
+AdamW优化器，学习率正常范围，可优化参数出现问题了！！！！！！！！！
+dit的points_embedder没有放进优化器！！！！！！！！
+
+再关注NAN出现的时间地点。
+问题2：temb出现了NAN, 另外hidden_states，encoder_hidden_states有部分NAN以及超大数值（32次方）
+points_emb倒是数值良好
+继续深入分析temb NAN的造成原因：
+1.pooled_projections 数值看起来正常
+2.timestep 数值看起来正常，Transformer外部接口进来的是0到1，但是在进层之前会扩大1000倍,变为0到1000。
+但是发现在训练时，只专注于比较大的timestep，这不太好，比例不正常，需要修改。
+3.time_text_embed这个层的参数
+训练时参数正常，推理时参数导入异常，由此可推断其余参数也未必正常导致NAN。
+发现是dit.to_empty()导致模型参数的清空，遂删除该行。
+
+## 版本
+v1.0版本 
+编码方式：单通道点编号标注 + 卷积网络提取特征 + 与原图像特征相加
+文本：“drag the photo according to the points embedding”
+
+v2.0版本
+修改了dit.points_embedder层没有放入优化器的问题
+修改了推理时dit.to_empty()导致的权重不正确问题
+修改了文本为空文本，先尝试只通过points embedding作为引导条件
+修改了时间步采样mu=1.1，避免过多大时间步而过少小时间步的时间采样
+修改了pointsmapencoder最后输出时的空间对应问题,以及结构
+修改了pointsmapencoder最后卷积层为零初始化
