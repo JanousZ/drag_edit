@@ -15,7 +15,7 @@ from diffusers.models.attention_processor import (
 from diffusers.models.normalization import AdaLayerNormContinuous
 from diffusers.utils import USE_PEFT_BACKEND, deprecate, logging, scale_lora_layers, unscale_lora_layers
 from diffusers.models.modeling_outputs import Transformer2DModelOutput
-
+from accelerate.utils import set_module_tensor_to_device
 import torch
 import torch.nn as nn
 from typing import Any, Dict, Optional, Tuple, Union
@@ -92,6 +92,7 @@ class FluxTransformer2DPointsModel(
         self.context_embedder = nn.Linear(joint_attention_dim, self.inner_dim)
         self.x_embedder = nn.Linear(in_channels, self.inner_dim)
         self.points_embedder = nn.Linear(in_channels, self.inner_dim)
+        self.points_embedder_scale= nn.Parameter(torch.ones(1) * 1.0)
 
         self.transformer_blocks = nn.ModuleList(
             [
@@ -131,6 +132,13 @@ class FluxTransformer2DPointsModel(
         torch.nn.init.kaiming_normal_(self.points_embedder.weight)
         if self.points_embedder.bias is not None:
             torch.nn.init.zeros_(self.points_embedder.bias)
+        
+        set_module_tensor_to_device(
+            self, 
+            "points_embedder_scale", 
+            device="cuda", 
+            value=torch.tensor([1.0])
+        )
     
     def check_nan(self, param, layer_name, layer_id, param_name):
         if torch.isnan(param).any():
@@ -300,7 +308,26 @@ class FluxTransformer2DPointsModel(
 
         if points_emb is not None:
             points_emb = self.points_embedder(points_emb)
-            hidden_states = hidden_states + points_emb
+
+            with torch.no_grad():
+                # 计算图像特征和点嵌入的量级 (取 Batch 平均)
+                img_norm = hidden_states.detach().norm(p=2)
+                pts_norm = points_emb.detach().norm(p=2)
+                ratio = pts_norm / (img_norm + 1e-8)
+
+                print(f"  - Image Norm: {img_norm.item():.4f}")
+                print(f"  - Points Norm: {pts_norm.item():.4f}")
+                print(f"  - Ratio (Pts/Img): {ratio.item():.4%}")
+                print(hidden_states.abs().min())
+                print(points_emb.abs().max())
+
+                token_energies = points_emb.norm(p=2, dim=-1)
+                topk_values, topk_indices = torch.topk(token_energies, k=10, dim=-1)
+                pts_peak = topk_values.mean()
+                img_peak = torch.gather(hidden_states.norm(dim=-1), 1, topk_indices).mean()
+                print(f"核心点位能量占比 (Peak Ratio): {pts_peak / img_peak:.2%}")
+
+            hidden_states = hidden_states + points_emb * self.points_embedder_scale
 
         timestep = timestep.to(hidden_states.dtype) * 1000
         if guidance is not None:

@@ -252,6 +252,7 @@ def main():
     )
     model.dit.add_adapter(lora_config, adapter_name="edit")
     model.dit.points_embedder.requires_grad_(True)
+    model.dit.points_embedder_scale.requires_grad_(True)
 
     # 断点重训
     if ARGS.resume_lora_path is not None:
@@ -412,6 +413,7 @@ def main():
                 global_step += 1
                 if ARGS.report_to != "none":
                     accelerator.log({"loss": loss.item()}, step=global_step)
+                    accelerator.log({"scale": model.dit.points_embedder_scale.detach().float().cpu().item()})
                 logger.info(f"Step {global_step}, Loss: {loss.item():.4f}")
 
                 if global_step % save_steps == 0:

@@ -367,5 +367,3 @@ if __name__ == "__main__":
     points = torch.randint(low=0, high=511, size=(4,10,2))
     points_emb = get_points_map_embedding(point_map_encoder, img_tensor, points, "integer_index")
     # print(points_emb.shape)
-
-# conv_out是否选择零卷积层初始化？

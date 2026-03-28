@@ -39,6 +39,45 @@ import json
 import numpy as np
 from PIL import Image
 from accelerate.utils import set_module_tensor_to_device
+import cv2
+
+def visualize_drag_points(src_img_pil, tgt_img_pil, src_pts, tgt_pts, save_path):
+    """
+    将 src 和 tgt 点标注在图像上并水平拼接保存
+    src_pts/tgt_pts: [N, 2] 形状的 tensor 或 array
+    """
+    def pil_to_cv2(img):
+        return cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
+
+    s_img = pil_to_cv2(src_img_pil)
+    t_img = pil_to_cv2(tgt_img_pil)
+    
+    # 确保坐标是整数
+    s_pts = src_pts.cpu().numpy().astype(int)
+    t_pts = tgt_pts.cpu().numpy().astype(int)
+    
+    # 颜色配置: Src用红色(Red), Tgt用绿色(Green)
+    # OpenCV 颜色空间是 BGR
+    for i in range(len(s_pts)):
+        # 在原图画起始点 (Red)
+        cv2.circle(s_img, (s_pts[i, 0], s_pts[i, 1]), 4, (0, 0, 255), -1)
+        # 在目标图画终点 (Green)
+        cv2.circle(t_img, (t_pts[i, 0], t_pts[i, 1]), 4, (0, 255, 0), -1)
+        # 画个小箭头显示趋势
+        cv2.arrowedLine(s_img, (s_pts[i, 0], s_pts[i, 1]), 
+                       (t_pts[i, 0], t_pts[i, 1]), (0, 255, 255), 1, tipLength=0.2)
+
+    # 水平拼接显示
+    combined = np.hstack((s_img, t_img))
+    cv2.imwrite(save_path, combined)
+
+def tensor_to_Image(x):
+    x = (x + 1.0) * 127.5
+    x = x.permute(1, 2, 0)
+    x = torch.clamp(x, 0, 255).to(torch.uint8)
+    x = Image.fromarray(x.numpy())
+    return x
+
 
 def main():
     parser = ArgumentParser()
@@ -52,7 +91,7 @@ def main():
     dit = FluxTransformer2DPointsModel.from_pretrained(base_model, subfolder="transformer", torch_dtype=torch.bfloat16)
     pipe = DreamOmni2Pipeline.from_pretrained(base_model, transformer=dit)
     if not args.no_lora:
-        edit_lora_path = "/home/yanzhang/drag_edit/lora_ckpt/checkpoint-22500/lora.safetensors"
+        edit_lora_path = "/home/yanzhang/drag_edit/lora_ckpt/checkpoint-3500/lora.safetensors"
         # edit_lora_path = "/home/yanzhang/models/DreamOmni2/edit_lora/pytorch_lora_weights.safetensors"
         edit_lora_dict = load_file(edit_lora_path)
         edit_lora_dict_2 = {k[12:] : v.to(torch.bfloat16) for k,v in edit_lora_dict.items()}  # 去除 transformer.
@@ -73,6 +112,8 @@ def main():
                 set_module_tensor_to_device(dit, name, device="cuda", value=safe_data)
 
         missing, unexpected = dit.load_state_dict(edit_lora_dict_2, strict=False)
+    else:
+        pass
     dit.eval()
     pipe.enable_model_cpu_offload()
     # pipe = pipe.to("cuda")
@@ -81,7 +122,7 @@ def main():
     with open(points_map_encoder_config_path, "r") as f:
         points_map_encoder_config = json.load(f)
     points_map_encoder = PointsMapEncoder(**points_map_encoder_config)
-    encoder_path = "/home/yanzhang/drag_edit/lora_ckpt/checkpoint-22500/points_map_encoder.safetensors"
+    encoder_path = "/home/yanzhang/drag_edit/lora_ckpt/checkpoint-3500/points_map_encoder.safetensors"
     encoder_state_dict = load_file(encoder_path)
     encoder_state_dict = {k: v.to(torch.bfloat16) for k, v in encoder_state_dict.items()}
     missing, unexpected = points_map_encoder.load_state_dict(encoder_state_dict)
@@ -96,16 +137,14 @@ def main():
         output_dir = os.path.join(args.root_dir, f"{i}")
         os.makedirs(output_dir, exist_ok=True)
         data = dataset[i]
-        # src_image = data["src_image"]
-        # ref_image = data["ref_image"]
+        src_image = data["input_image"]
+        tgt_image = data["target_image"]
+        
         # data["src_image"].save("./src.jpg")
         # data["ref_image"].save("./ref.jpg")
-        img_path1, tgt_image_path = dataset.data[i]["pair"]
-        frame1 = os.path.basename(img_path1).split('_frame_')[1].split('.png')[0]
-        src_image_path = os.path.join(dataset.data[i]["folder"], f"original_frame_{frame1}.png")
-        src_image = Image.open(src_image_path)
-        tgt_image = Image.open(tgt_image_path)
-        src_image.save(os.path.join(output_dir, "src.jpg"))
+        src_image = tensor_to_Image(src_image)
+        tgt_image = tensor_to_Image(tgt_image)
+        
         tgt_image.save(os.path.join(output_dir, "gt.jpg"))
 
         with open(os.path.join(output_dir, "instruction.txt"), "w") as f:
@@ -114,6 +153,7 @@ def main():
         # get points_emb
         src_points = torch.from_numpy(data["src_points"]).unsqueeze(0)
         tgt_points = torch.from_numpy(data["tgt_points"]).unsqueeze(0)
+
         points=torch.concat([tgt_points, src_points], dim=0)
         W, H = src_image.size
         B = 1
@@ -145,9 +185,10 @@ def main():
             _auto_resize=False,
         ).images[0]
         save_name = os.path.join(output_dir, "tgt.jpg" if not args.no_lora else "tgt_no_lora.jpg")
-        image.save(save_name)
+        #image.save(save_name)
+    
+        visualize_drag_points(src_image, image, src_points.squeeze(0), tgt_points.squeeze(0), os.path.join(output_dir,"compare.jpg"))
 
-        break
     
 
 if __name__ == "__main__":
