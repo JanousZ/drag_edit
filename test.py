@@ -91,7 +91,7 @@ def main():
     dit = FluxTransformer2DPointsModel.from_pretrained(base_model, subfolder="transformer", torch_dtype=torch.bfloat16)
     pipe = DreamOmni2Pipeline.from_pretrained(base_model, transformer=dit)
     if not args.no_lora:
-        edit_lora_path = "/home/yanzhang/drag_edit/lora_ckpt/checkpoint-3500/lora.safetensors"
+        edit_lora_path = "/home/yanzhang/drag_edit/lora_ckpt_v2.1/checkpoint-19500/lora.safetensors"
         # edit_lora_path = "/home/yanzhang/models/DreamOmni2/edit_lora/pytorch_lora_weights.safetensors"
         edit_lora_dict = load_file(edit_lora_path)
         edit_lora_dict_2 = {k[12:] : v.to(torch.bfloat16) for k,v in edit_lora_dict.items()}  # 去除 transformer.
@@ -122,7 +122,7 @@ def main():
     with open(points_map_encoder_config_path, "r") as f:
         points_map_encoder_config = json.load(f)
     points_map_encoder = PointsMapEncoder(**points_map_encoder_config)
-    encoder_path = "/home/yanzhang/drag_edit/lora_ckpt/checkpoint-3500/points_map_encoder.safetensors"
+    encoder_path = "/home/yanzhang/drag_edit/lora_ckpt_v2.1/checkpoint-19500/points_map_encoder.safetensors"
     encoder_state_dict = load_file(encoder_path)
     encoder_state_dict = {k: v.to(torch.bfloat16) for k, v in encoder_state_dict.items()}
     missing, unexpected = points_map_encoder.load_state_dict(encoder_state_dict)
