@@ -1,5 +1,9 @@
 wandb/
 lora_ckpt/
 lora_ckpt_v2.0/
-lora_ckpt_v2.1/
+lora_ckpt_v2.1_/
 output/
+bench/
+train2.log
+output_100/
+output_2.1/

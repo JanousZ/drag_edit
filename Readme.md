@@ -6,7 +6,28 @@ unset https_proxy
 export https_proxy="http://127.0.0.1:7890"
 cd Kontext_train_ds2
 
-accelerate launch --config_file ./train/deepspeed.yaml --main_process_port 29606 ./train/train_ds2.py --num_epochs 50 --lr 1e-4 --save_steps 500 > train.log 2>&1
+```bash
+accelerate launch --config_file ./train/deepspeed.yaml --main_process_port 29606 ./train/train_ds2.py \  
+    --num_epochs 50 --lr 1e-4 --save_steps 500 > train.log 2>&1
+```
+
+```bash
+accelerate launch --config_file ./train/deepspeed.yaml --main_process_port 29607 ./train/train_ds2.py --num_epochs 50 --lr 1e-4 --save_steps 500 --output_dir lora_ckpt_v2.1_ > train2.log 2>&1
+```
+
+```bash
+python test.py \
+--use_lora \
+--checkpoint_dir "./lora_ckpt_v2.1_/checkpoint-23000" \
+--output_dir "./output_2.1" \
+--dataset_jsonl "/home/yanzhang/dragdatasets/paired_frames.jsonl"
+
+python test.py \
+--use_lora \
+--checkpoint_dir "./lora_ckpt/checkpoint-23000" \
+--output_dir "./bench" \
+--dataset_jsonl "/home/yanzhang/dragdatasets/paired_frames.jsonl"
+```
 
 #异步错误处理
 当一个 GPU 节点发生 NCCL 错误时，其他节点能及时收到通知并优雅退出，而不是一直死等（卡死）。它让错误日志更清晰。
@@ -193,3 +214,11 @@ Ratio (Pts/Img): 0.3906%
 
 v2.1版本
 修改scale为1.0，并调节为可训练
+
+## 后续优化
+数据集收集
+方法改进
+：多层注入
+：傅里叶嵌入编码
+：从分开编码 -> 流畅流场编码
+

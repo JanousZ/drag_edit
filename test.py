@@ -1,14 +1,9 @@
-#!/usr/bin/env python3
-"""
-Training script for Kontext model with DeepSpeed and Accelerate
-"""
-
 import torch
 from torch.optim import AdamW
 from accelerate import Accelerator
 from peft import get_peft_model, LoraConfig
 import argparse
-from my_datasets.dragdataset import DragDataset, dd_collate_fn
+from my_datasets.dragdataset import DragDataset, dd_collate_fn, DragBenchDataset
 from torch.utils.data import DataLoader
 import os
 import logging
@@ -81,17 +76,24 @@ def tensor_to_Image(x):
 
 def main():
     parser = ArgumentParser()
-    parser.add_argument("--no_lora", action="store_true")
-    parser.add_argument("--root_dir", type=str, default="./output")
+    parser.add_argument("--use_lora", action="store_true")
+    parser.add_argument("--output_dir", type=str, default="./output")
+    parser.add_argument("--checkpoint_dir", type=str, default=None)
+    parser.add_argument("--lora_file", type=str, default="lora.safetensors")
+    parser.add_argument("--encoder_file", type=str, default="points_map_encoder.safetensors")
+    parser.add_argument("--encoder_config", type=str, default="./module/pme_config.json")
+    parser.add_argument("--dataset_jsonl", type=str, default=None)
+    parser.add_argument("--base_model", type=str, default="/mnt/disk1/models/FLUX.1-Kontext-dev")
+
     args = parser.parse_args()
 
-    os.makedirs(args.root_dir, exist_ok=True)
+    os.makedirs(args.output_dir, exist_ok=True)
 
-    base_model = "/mnt/disk1/models/FLUX.1-Kontext-dev"
+    base_model = args.base_model
     dit = FluxTransformer2DPointsModel.from_pretrained(base_model, subfolder="transformer", torch_dtype=torch.bfloat16)
     pipe = DreamOmni2Pipeline.from_pretrained(base_model, transformer=dit)
-    if not args.no_lora:
-        edit_lora_path = "/home/yanzhang/drag_edit/lora_ckpt_v2.1/checkpoint-19500/lora.safetensors"
+    if args.use_lora:
+        edit_lora_path = os.path.join(args.checkpoint_dir, args.lora_file)
         # edit_lora_path = "/home/yanzhang/models/DreamOmni2/edit_lora/pytorch_lora_weights.safetensors"
         edit_lora_dict = load_file(edit_lora_path)
         edit_lora_dict_2 = {k[12:] : v.to(torch.bfloat16) for k,v in edit_lora_dict.items()}  # 去除 transformer.
@@ -107,22 +109,22 @@ def main():
         dit.add_adapter(lora_config, adapter_name="edit")
 
         for name,param in dit.named_parameters():
-            if param.device.type == "meta":
+            if param.is_meta:
                 safe_data = torch.zeros(param.shape, dtype=param.dtype, device="cuda")
                 set_module_tensor_to_device(dit, name, device="cuda", value=safe_data)
 
         missing, unexpected = dit.load_state_dict(edit_lora_dict_2, strict=False)
     else:
         pass
+
     dit.eval()
     pipe.enable_model_cpu_offload()
     # pipe = pipe.to("cuda")
     
-    points_map_encoder_config_path = "/home/yanzhang/drag_edit/module/pme_config.json"
-    with open(points_map_encoder_config_path, "r") as f:
+    with open(args.encoder_config, "r") as f:
         points_map_encoder_config = json.load(f)
     points_map_encoder = PointsMapEncoder(**points_map_encoder_config)
-    encoder_path = "/home/yanzhang/drag_edit/lora_ckpt_v2.1/checkpoint-19500/points_map_encoder.safetensors"
+    encoder_path = os.path.join(args.checkpoint_dir, args.encoder_file)
     encoder_state_dict = load_file(encoder_path)
     encoder_state_dict = {k: v.to(torch.bfloat16) for k, v in encoder_state_dict.items()}
     missing, unexpected = points_map_encoder.load_state_dict(encoder_state_dict)
@@ -131,21 +133,20 @@ def main():
 
     # 加载数据 
     # dataset = Replace5kDataset(json_file="/home/yanzhang/datasets/replace-5k/test.json", is_image_preprocess=False)
-    dataset = DragDataset(jsonl_file="/home/yanzhang/dragdatasets/paired_frames.jsonl")
+    dataset = DragDataset(jsonl_file=args.dataset_jsonl)
+    dataset = DragBenchDataset(root_dir = "/mnt/disk1/datasets/DragBench")
     
     for i in range(len(dataset)):
-        output_dir = os.path.join(args.root_dir, f"{i}")
+        output_dir = os.path.join(args.output_dir, f"{i}")
         os.makedirs(output_dir, exist_ok=True)
         data = dataset[i]
         src_image = data["input_image"]
-        tgt_image = data["target_image"]
+        # tgt_image = data["target_image"]
         
-        # data["src_image"].save("./src.jpg")
-        # data["ref_image"].save("./ref.jpg")
-        src_image = tensor_to_Image(src_image)
-        tgt_image = tensor_to_Image(tgt_image)
+        # src_image = tensor_to_Image(src_image)
+        # tgt_image = tensor_to_Image(tgt_image)
         
-        tgt_image.save(os.path.join(output_dir, "gt.jpg"))
+        # tgt_image.save(os.path.join(output_dir, "gt.jpg"))
 
         with open(os.path.join(output_dir, "instruction.txt"), "w") as f:
             f.write("Drag the image according to the given points mapping embeddings.")
@@ -184,7 +185,7 @@ def main():
             points_emb=points_emb.to(torch.bfloat16),
             _auto_resize=False,
         ).images[0]
-        save_name = os.path.join(output_dir, "tgt.jpg" if not args.no_lora else "tgt_no_lora.jpg")
+        save_name = os.path.join(output_dir, "tgt.jpg" if args.use_lora else "tgt_no_lora.jpg")
         #image.save(save_name)
     
         visualize_drag_points(src_image, image, src_points.squeeze(0), tgt_points.squeeze(0), os.path.join(output_dir,"compare.jpg"))

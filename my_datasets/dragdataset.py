@@ -4,6 +4,8 @@ import numpy as np
 import torch
 import os
 from torch.utils.data.dataset import Dataset
+import pickle
+from PIL import Image
 
 class DragDataset(Dataset):
     def __init__(self, jsonl_file):
@@ -119,3 +121,216 @@ def dd_collate_fn(batch):
         "src_points": src_points,
         "tgt_points": tgt_points,
     }
+
+class DragBenchDataset(Dataset):
+    """
+    Loader supporting dragbench-dr (category folders), dragbench-sr (flat samples),
+    or both at once.
+
+    Parameters:
+    - root_dir: root folder that contains 'dragbench-dr' and/or 'dragbench-sr'
+    - bench_type: 'dr', 'sr', 'both', or a list like ['dr','sr']
+    - transform: optional callable applied to PIL.Image
+    - return_paths: if True, include file paths in returned dict
+    """
+    def __init__(self, root_dir, bench_type='both', transform=None, return_paths=False, target_size=512):
+        if isinstance(bench_type, str):
+            bench_type = [bench_type]
+        bench_type = set(x.lower() for x in bench_type)
+        allowed = {'dr', 'sr', 'both'}
+        if 'both' in bench_type:
+            bench_type = {'dr', 'sr'}
+
+        self.root_dir = root_dir
+        self.transform = transform
+        self.return_paths = return_paths
+        self.samples = []  # list of dicts: {sample_dir, bench_type, category}
+        self.target_size = int(target_size)
+
+        if 'dr' in bench_type:
+            dr_root = os.path.join(root_dir, 'dragbench-dr')
+            if os.path.isdir(dr_root):
+                for category in sorted(os.listdir(dr_root)):
+                    cat_dir = os.path.join(dr_root, category)
+                    if not os.path.isdir(cat_dir):
+                        continue
+                    for sample in sorted(os.listdir(cat_dir)):
+                        sample_dir = os.path.join(cat_dir, sample)
+                        if os.path.isdir(sample_dir):
+                            self.samples.append({
+                                'sample_dir': sample_dir,
+                                'bench_type': 'dr',
+                                'category': category
+                            })
+
+        if 'sr' in bench_type:
+            sr_root = os.path.join(root_dir, 'dragbench-sr')
+            if os.path.isdir(sr_root):
+                for sample in sorted(os.listdir(sr_root)):
+                    sample_dir = os.path.join(sr_root, sample)
+                    if os.path.isdir(sample_dir):
+                        self.samples.append({
+                            'sample_dir': sample_dir,
+                            'bench_type': 'sr',
+                            'category': None
+                        })
+
+        if len(self.samples) == 0:
+            raise ValueError(f"No samples found under {root_dir} for types {bench_type}")
+
+    def __len__(self):
+        return len(self.samples)
+
+    def _open_image(self, path):
+        if not os.path.exists(path):
+            return None
+        return Image.open(path).convert("RGB")
+
+    def _load_pickle(self, path):
+        if not os.path.exists(path):
+            return None
+        with open(path, 'rb') as f:
+            return pickle.load(f)
+
+    def _compute_points_arrays(self, meta):
+        """
+        From meta_data['points'] (assumed [src0, tgt0, src1, tgt1, ...]) return src_pts, tgt_pts arrays.
+        If missing or invalid, return (None, None).
+        """
+        if meta is None:
+            return None, None
+        pts = meta.get("points")
+        if not pts:
+            return None, None
+        try:
+            src_pts = np.array(pts[0::2], dtype=np.float32)
+            tgt_pts = np.array(pts[1::2], dtype=np.float32)
+            return src_pts, tgt_pts
+        except Exception:
+            return None, None
+
+    def _crop_resize_and_update_points(self, img, src_pts, tgt_pts):
+        """
+        Crop img to square ROI covering points (or center square if points None),
+        resize to target_size if needed, and return (img_out, new_src, new_tgt, crop_info)
+        crop_info = (x0, y0, side, scale)
+        """
+        w, h = img.size
+        t = self.target_size
+
+        # if already desired size return without change
+        if w == t and h == t:
+            return img, src_pts, tgt_pts, (0, 0, max(w, h), 1.0)
+
+        # determine ROI
+        if src_pts is not None and tgt_pts is not None and len(src_pts) > 0 and len(tgt_pts) > 0:
+            all_pts = np.vstack([src_pts, tgt_pts])
+            min_x, min_y = np.min(all_pts[:, 0]), np.min(all_pts[:, 1])
+            max_x, max_y = np.max(all_pts[:, 0]), np.max(all_pts[:, 1])
+            content_w = max_x - min_x
+            content_h = max_y - min_y
+            base_side = max(content_w, content_h, t)
+            base_side = min(base_side, w, h)
+            center_x, center_y = (min_x + max_x) / 2.0, (min_y + max_y) / 2.0
+            x0 = int(round(center_x - base_side / 2.0))
+            y0 = int(round(center_y - base_side / 2.0))
+        else:
+            # center square fallback
+            base_side = min(w, h, max(t, 1))
+            x0 = (w - base_side) // 2
+            y0 = (h - base_side) // 2
+            base_side = int(base_side)
+
+        x0 = max(0, min(x0, w - int(base_side)))
+        y0 = max(0, min(y0, h - int(base_side)))
+        actual_side = int(base_side)
+
+        crop_box = (x0, y0, x0 + actual_side, y0 + actual_side)
+        cropped = img.crop(crop_box)
+
+        scale = 1.0
+        if actual_side != t:
+            cropped = cropped.resize((t, t), Image.LANCZOS)
+            scale = float(t) / float(actual_side)
+
+        new_src, new_tgt = None, None
+        if src_pts is not None:
+            new_src = (src_pts - np.array([x0, y0])) * scale
+        if tgt_pts is not None:
+            new_tgt = (tgt_pts - np.array([x0, y0])) * scale
+
+        return cropped, new_src, new_tgt, (x0, y0, actual_side, scale)
+
+    def __getitem__(self, idx):
+        info = self.samples[idx]
+        sample_dir = info['sample_dir']
+
+        orig_path = os.path.join(sample_dir, "original_image.png")
+        user_drag_path = os.path.join(sample_dir, "user_drag.png")
+        meta_path = os.path.join(sample_dir, "meta_data.pkl")
+
+        original_image = self._open_image(orig_path)
+        user_drag = self._open_image(user_drag_path)
+        meta_data = self._load_pickle(meta_path)
+
+        # optional i4p files
+        meta_i4p = self._load_pickle(os.path.join(sample_dir, "meta_data_i4p.pkl"))
+        user_drag_i4p = self._open_image(os.path.join(sample_dir, "user_drag_i4p.png"))
+
+        # get point arrays if present
+        src_points, tgt_points = self._compute_points_arrays(meta_data)
+
+        # crop/resize original_image and update points
+        if original_image is not None:
+            original_image, new_src, new_tgt, crop_info = self._crop_resize_and_update_points(original_image, src_points, tgt_points)
+        else:
+            new_src, new_tgt = src_points, tgt_points
+
+        # apply same crop/resize to user_drag and user_drag_i4p (use same logic)
+        if user_drag is not None:
+            user_drag, _, _, _ = self._crop_resize_and_update_points(user_drag, src_points, tgt_points)
+        if user_drag_i4p is not None:
+            user_drag_i4p, _, _, _ = self._crop_resize_and_update_points(user_drag_i4p, src_points, tgt_points)
+
+        # write updated points back into meta_data["points"] if meta exists
+        if meta_data is not None and new_src is not None and new_tgt is not None:
+            interleaved = []
+            for s, tpt in zip(new_src.tolist(), new_tgt.tolist()):
+                interleaved.append([float(s[0]), float(s[1])])
+                interleaved.append([float(tpt[0]), float(tpt[1])])
+            meta_data["points"] = interleaved
+            src_points = new_src
+            tgt_points = new_tgt
+        else:
+            src_points = new_src
+            tgt_points = new_tgt
+
+        # apply transforms if provided (after crop/resize)
+        if self.transform is not None:
+            original_image = self.transform(original_image) if original_image is not None else None
+            user_drag = self.transform(user_drag) if user_drag is not None else None
+            if user_drag_i4p is not None:
+                user_drag_i4p = self.transform(user_drag_i4p)
+
+        out = {
+            "input_image": original_image,
+            "user_drag": user_drag,
+            "meta_data": meta_data,
+            "meta_data_i4p": meta_i4p,
+            "user_drag_i4p": user_drag_i4p,
+            "sample_dir": sample_dir,
+            "bench_type": info['bench_type'],
+            "category": info['category'],
+            "src_points": src_points,
+            "tgt_points": tgt_points,
+        }
+        if self.return_paths:
+            out.update({
+                "original_image_path": orig_path,
+                "user_drag_path": user_drag_path,
+                "meta_data_path": meta_path,
+            })
+        return out
+
+if __name__ == "__main__":
+    bench = DragBenchDataset(root_dir = "/mnt/disk1/datasets/DragBench")

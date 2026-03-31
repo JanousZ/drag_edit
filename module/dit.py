@@ -92,7 +92,6 @@ class FluxTransformer2DPointsModel(
         self.context_embedder = nn.Linear(joint_attention_dim, self.inner_dim)
         self.x_embedder = nn.Linear(in_channels, self.inner_dim)
         self.points_embedder = nn.Linear(in_channels, self.inner_dim)
-        self.points_embedder_scale= nn.Parameter(torch.ones(1) * 1.0)
 
         self.transformer_blocks = nn.ModuleList(
             [
@@ -132,13 +131,6 @@ class FluxTransformer2DPointsModel(
         torch.nn.init.kaiming_normal_(self.points_embedder.weight)
         if self.points_embedder.bias is not None:
             torch.nn.init.zeros_(self.points_embedder.bias)
-        
-        set_module_tensor_to_device(
-            self, 
-            "points_embedder_scale", 
-            device="cuda", 
-            value=torch.tensor([1.0])
-        )
     
     def check_nan(self, param, layer_name, layer_id, param_name):
         if torch.isnan(param).any():
@@ -327,7 +319,7 @@ class FluxTransformer2DPointsModel(
                 img_peak = torch.gather(hidden_states.norm(dim=-1), 1, topk_indices).mean()
                 print(f"核心点位能量占比 (Peak Ratio): {pts_peak / img_peak:.2%}")
 
-            hidden_states = hidden_states + points_emb * self.points_embedder_scale
+            hidden_states = hidden_states + points_emb * 100.0
 
         timestep = timestep.to(hidden_states.dtype) * 1000
         if guidance is not None:
