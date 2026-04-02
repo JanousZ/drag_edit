@@ -99,7 +99,7 @@ def main():
         edit_lora_dict_2 = {k[12:] : v.to(torch.bfloat16) for k,v in edit_lora_dict.items()}  # 去除 transformer.
         for k,v in edit_lora_dict_2.items():
             if "points" in k:
-                edit_lora_dict_2[k] = edit_lora_dict_2[k] * 0.01
+                edit_lora_dict_2[k] = edit_lora_dict_2[k]
 
         lora_rank = 32
         lora_alpha = 32

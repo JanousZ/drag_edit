@@ -128,7 +128,7 @@ class FluxTransformer2DPointsModel(
             self.points_embedder.to_empty(device=device)
         
         # 正常的参数初始化
-        torch.nn.init.kaiming_normal_(self.points_embedder.weight)
+        torch.nn.init.zeros_(self.points_embedder.weight)
         if self.points_embedder.bias is not None:
             torch.nn.init.zeros_(self.points_embedder.bias)
     
@@ -319,7 +319,7 @@ class FluxTransformer2DPointsModel(
                 img_peak = torch.gather(hidden_states.norm(dim=-1), 1, topk_indices).mean()
                 print(f"核心点位能量占比 (Peak Ratio): {pts_peak / img_peak:.2%}")
 
-            hidden_states = hidden_states + points_emb * 100.0
+            hidden_states = hidden_states + points_emb
 
         timestep = timestep.to(hidden_states.dtype) * 1000
         if guidance is not None:
