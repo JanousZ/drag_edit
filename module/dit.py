@@ -128,7 +128,7 @@ class FluxTransformer2DPointsModel(
             self.points_embedder.to_empty(device=device)
         
         # 正常的参数初始化
-        torch.nn.init.zeros_(self.points_embedder.weight)
+        torch.nn.init.kaiming_normal_(self.points_embedder.weight)
         if self.points_embedder.bias is not None:
             torch.nn.init.zeros_(self.points_embedder.bias)
     
