@@ -8,16 +8,21 @@ import pickle
 from PIL import Image
 
 class DragDataset(Dataset):
-    def __init__(self, jsonl_file):
+    def __init__(self, jsonl_file, root_dir):
         self.data = []
         self.crop_size = 512
-        with open(jsonl_file, 'r', encoding='utf-8') as f:
-            for line in f:
-                try:
-                    record = json.loads(line.strip())
-                    self.data.append(record)
-                except json.JSONDecodeError:
-                    continue
+        self.root_dir = root_dir
+        if isinstance(jsonl_file, str):
+            jsonl_file = [jsonl_file]
+        for jf in jsonl_file:
+            with open(jf, 'r', encoding='utf-8') as f:
+                for line in f:
+                    try:
+                        record = json.loads(line.strip())
+                        if record.get("label") == "yes":
+                            self.data.append(record)
+                    except json.JSONDecodeError:
+                        continue
 
     def image_preprocess(self, img_path1, img_path2, src_points, tgt_points):
         # 加载图像
@@ -85,19 +90,36 @@ class DragDataset(Dataset):
             raise IndexError("索引超出范围")
         
         record = self.data[idx]
-        dir = record["folder"]
+        rel_folder = record["folder"]
         stride = record["stride"]
-        img_path1, img_path2 = record["pair"]
-        label = record["label"]
+        folder_abs = os.path.join(self.root_dir, rel_folder)
 
-        frame1 = os.path.basename(img_path1).split('_frame_')[1].split('.png')[0]
-        frame2 = os.path.basename(img_path2).split('_frame_')[1].split('.png')[0]
-        pred_track_path1 = os.path.join(dir, f"pred_track_frame_{frame1}.npy")
-        pred_track_path2 = os.path.join(dir, f"pred_track_frame_{frame2}.npy")
+        # 优先从 src_points/tgt_points 字段读 npy
+        if "src_points" in record and "tgt_points" in record:
+            pred_track_path1 = os.path.join(self.root_dir, record["src_points"])
+            pred_track_path2 = os.path.join(self.root_dir, record["tgt_points"])
+        else:
+            # fallback: 从 pair 文件名推断
+            rel_path1, rel_path2 = record["pair"]
+            frame1 = os.path.basename(rel_path1).split('_frame_')[1].split('.png')[0]
+            frame2 = os.path.basename(rel_path2).split('_frame_')[1].split('.png')[0]
+            pred_track_path1 = os.path.join(folder_abs, f"pred_track_stride_{stride}_frame_{frame1}.npy")
+            if not os.path.exists(pred_track_path1):
+                pred_track_path1 = os.path.join(folder_abs, f"pred_track_frame_{frame1}.npy")
+            pred_track_path2 = os.path.join(folder_abs, f"pred_track_stride_{stride}_frame_{frame2}.npy")
+            if not os.path.exists(pred_track_path2):
+                pred_track_path2 = os.path.join(folder_abs, f"pred_track_frame_{frame2}.npy")
+
         src_points = np.load(pred_track_path1) if os.path.exists(pred_track_path1) else None
         tgt_points = np.load(pred_track_path2) if os.path.exists(pred_track_path2) else None
-        img_path1 = os.path.join(dir, f"original_frame_{frame1}.png")
-        img_path2 = os.path.join(dir, f"original_frame_{frame2}.png")
+
+        # original_frame 路径从 pair 文件名推断
+        rel_path1 = record["pair"][0]
+        frame1 = os.path.basename(rel_path1).split('_frame_')[1].split('.png')[0]
+        rel_path2 = record["pair"][1]
+        frame2 = os.path.basename(rel_path2).split('_frame_')[1].split('.png')[0]
+        img_path1 = os.path.join(folder_abs, f"original_frame_{frame1}.png")
+        img_path2 = os.path.join(folder_abs, f"original_frame_{frame2}.png")
 
         src_image, src_points, tgt_image, tgt_points = self.image_preprocess(img_path1, img_path2, src_points, tgt_points)
 

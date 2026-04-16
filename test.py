@@ -66,6 +66,32 @@ def visualize_drag_points(src_img_pil, tgt_img_pil, src_pts, tgt_pts, save_path)
     combined = np.hstack((s_img, t_img))
     cv2.imwrite(save_path, combined)
 
+def augment_drag_points(src_points, tgt_points, radius, num_neighbors, img_w, img_h):
+    """
+    对每个原始拖拽点，在其附近采样邻居点，施加相同位移向量，扩充点对数量。
+    src_points: [N, 2] numpy array (x, y)
+    tgt_points: [N, 2] numpy array (x, y)
+    返回增强后的 src_points, tgt_points: [N*(1+num_neighbors), 2]
+    """
+    aug_src = [src_points]
+    aug_tgt = [tgt_points]
+    for i in range(len(src_points)):
+        displacement = tgt_points[i] - src_points[i]  # 位移向量
+        for _ in range(num_neighbors):
+            # 在原始src点附近随机采样偏移
+            offset = np.random.randint(-radius, radius + 1, size=2)
+            new_src = src_points[i] + offset
+            new_tgt = new_src + displacement  # 同向迁移
+            # 确保点在图像范围内
+            new_src[0] = np.clip(new_src[0], 0, img_w - 1)
+            new_src[1] = np.clip(new_src[1], 0, img_h - 1)
+            new_tgt[0] = np.clip(new_tgt[0], 0, img_w - 1)
+            new_tgt[1] = np.clip(new_tgt[1], 0, img_h - 1)
+            aug_src.append(new_src.reshape(1, 2))
+            aug_tgt.append(new_tgt.reshape(1, 2))
+    return np.concatenate(aug_src, axis=0), np.concatenate(aug_tgt, axis=0)
+
+
 def tensor_to_Image(x):
     x = (x + 1.0) * 127.5
     x = x.permute(1, 2, 0)
@@ -84,6 +110,12 @@ def main():
     parser.add_argument("--encoder_config", type=str, default="./module/pme_config.json")
     parser.add_argument("--dataset_jsonl", type=str, default=None)
     parser.add_argument("--base_model", type=str, default="/mnt/disk1/models/FLUX.1-Kontext-dev")
+    parser.add_argument("--dataset_type", type=str, default="drag", choices=["drag", "dragbench"],
+                        help="Dataset type: 'drag' for DragDataset, 'dragbench' for DragBenchDataset")
+    parser.add_argument("--dragbench_root", type=str, default="/mnt/disk1/datasets/DragBench")
+    parser.add_argument("--augment_points", action="store_true", help="Enable nearby point augmentation")
+    parser.add_argument("--augment_radius", type=int, default=5, help="Radius to sample nearby points")
+    parser.add_argument("--augment_num", type=int, default=2, help="Number of nearby points per original point")
 
     args = parser.parse_args()
 
@@ -131,29 +163,50 @@ def main():
     points_map_encoder.eval()
     points_map_encoder = points_map_encoder.to("cuda")
 
-    # 加载数据 
-    # dataset = Replace5kDataset(json_file="/home/yanzhang/datasets/replace-5k/test.json", is_image_preprocess=False)
-    dataset = DragDataset(jsonl_file=args.dataset_jsonl)
-    dataset = DragBenchDataset(root_dir = "/mnt/disk1/datasets/DragBench")
+    # 加载数据
+    if args.dataset_type == "drag":
+        dataset = DragDataset(jsonl_file=args.dataset_jsonl)
+    elif args.dataset_type == "dragbench":
+        dataset = DragBenchDataset(root_dir=args.dragbench_root)
     
     for i in range(len(dataset)):
         output_dir = os.path.join(args.output_dir, f"{i}")
         os.makedirs(output_dir, exist_ok=True)
         data = dataset[i]
-        src_image = data["input_image"]
-        # tgt_image = data["target_image"]
-        
-        # src_image = tensor_to_Image(src_image)
-        # tgt_image = tensor_to_Image(tgt_image)
-        
-        # tgt_image.save(os.path.join(output_dir, "gt.jpg"))
+
+        if args.dataset_type == "drag":
+            # DragDataset returns tensors [-1, 1], convert to PIL
+            src_image = tensor_to_Image(data["input_image"])
+            tgt_image = tensor_to_Image(data["target_image"])
+        else:
+            # DragBenchDataset returns PIL images directly, no target_image key
+            src_image = data["input_image"]
+            tgt_image = data.get("user_drag", None)
+
+        if tgt_image is not None:
+            tgt_image.save(os.path.join(output_dir, "gt.jpg"))
 
         with open(os.path.join(output_dir, "instruction.txt"), "w") as f:
             f.write("Drag the image according to the given points mapping embeddings.")
 
         # get points_emb
-        src_points = torch.from_numpy(data["src_points"]).unsqueeze(0)
-        tgt_points = torch.from_numpy(data["tgt_points"]).unsqueeze(0)
+        src_points_np = data["src_points"]
+        tgt_points_np = data["tgt_points"]
+        if isinstance(src_points_np, torch.Tensor):
+            src_points_np = src_points_np.numpy()
+        if isinstance(tgt_points_np, torch.Tensor):
+            tgt_points_np = tgt_points_np.numpy()
+        if args.augment_points:
+            W_img, H_img = src_image.size
+            src_points_np, tgt_points_np = augment_drag_points(
+                src_points_np, tgt_points_np,
+                radius=args.augment_radius,
+                num_neighbors=args.augment_num,
+                img_w=W_img, img_h=H_img,
+            )
+
+        src_points = torch.from_numpy(src_points_np).unsqueeze(0)
+        tgt_points = torch.from_numpy(tgt_points_np).unsqueeze(0)
 
         points=torch.concat([tgt_points, src_points], dim=0)
         W, H = src_image.size
@@ -189,8 +242,6 @@ def main():
         #image.save(save_name)
     
         visualize_drag_points(src_image, image, src_points.squeeze(0), tgt_points.squeeze(0), os.path.join(output_dir,"compare.jpg"))
-
-    
 
 if __name__ == "__main__":
     main()

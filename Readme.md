@@ -7,26 +7,28 @@ export https_proxy="http://127.0.0.1:7890"
 cd Kontext_train_ds2
 
 ```bash
-accelerate launch --config_file ./train/deepspeed.yaml --main_process_port 29606 ./train/train_ds2.py \  
-    --num_epochs 50 --lr 1e-4 --save_steps 500 > train.log 2>&1
+accelerate launch --config_file ./train/deepspeed.yaml --main_process_port 29607 ./train/train_ds2.py \
+    --num_epochs 50 \
+    --lr 1e-4 \
+    --save_steps 500 \
+    --output_dir lora_ckpt_v3\
+    > train3.log 2>&1
 ```
 
 ```bash
-accelerate launch --config_file ./train/deepspeed.yaml --main_process_port 29607 ./train/train_ds2.py --num_epochs 50 --lr 1e-4 --save_steps 500 --output_dir lora_ckpt_v2.1_ > train2.log 2>&1
-```
-
-```bash
+export CUDA_VISIBLE_DEVICES=1
 python test.py \
 --use_lora \
---checkpoint_dir "./lora_ckpt_v2.1_/checkpoint-23000" \
---output_dir "./output_2.1" \
---dataset_jsonl "/home/yanzhang/dragdatasets/paired_frames.jsonl"
+--checkpoint_dir "./lora_ckpt/checkpoint-18000" \
+--dataset_type "drag" \
+--dataset_jsonl "/home/yanzhang/dragdatasets/paired_frames.jsonl" \
+--output_dir "./train_data"
 
 python test.py \
 --use_lora \
---checkpoint_dir "./lora_ckpt/checkpoint-23000" \
---output_dir "./bench" \
---dataset_jsonl "/home/yanzhang/dragdatasets/paired_frames.jsonl"
+--checkpoint_dir "./lora_ckpt/checkpoint-18000" \
+--dataset_type "dragbench" \
+--output_dir "./bench_27000_2.0"
 ```
 
 #异步错误处理
@@ -223,16 +225,4 @@ v2.1版本
 ：傅里叶嵌入编码
 ：从分开编码 -> 流畅流场编码
 
-## claude code请你分析问题
-我有两版方案
-v2.0:训练时不添加points_emb的缩放因子，训练时核心点位能量占比达到100％-500％
-推理时核心点位能量占比达到5％左右
-推理时不添加缩放因子则模型忽略控制条件随意生成，添加100.0的缩放因子则能遵循控制条件，但是容易扭曲有伪影。
-
-v2.1训练时添加points_emb的缩放因子100.0，训练时核心点位能量占比达到2％-5％
-推理时核心点位能量占比达到0.05％左右
-推理时无论是无缩放因子还是100.0的缩放因子，模型都忽略控制条件随意生成
-
-我在训练drag-style image edit的模型，基模是Flux-Kontext
-请你阅读point.py,dit.py,train_ds2.py等代码，首先寻找是否存在训练推理不一致的地方，或者是其他常见错误；
-另外分析出现这类问题的原因，以及给出可能的解决方案。
+应该是流场构建和流场选择问题

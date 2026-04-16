@@ -277,7 +277,7 @@ def main():
     optimizer = AdamW(params_groups)
 
     # 加载数据 
-    dataset = DragDataset(jsonl_file="/home/yanzhang/dragdatasets/paired_frames.jsonl")
+    dataset = DragDataset(jsonl_file=["/mnt/disk1/datasets/drag_data/OpenVid-1M_all.jsonl", "/mnt/disk1/datasets/drag_data/pexels_tdv2_all.jsonl"])
     dataloader = DataLoader(dataset, batch_size=1, shuffle=True, collate_fn=dd_collate_fn)
 
     # Prepare with accelerator
