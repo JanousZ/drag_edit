@@ -15,11 +15,15 @@ class DragDataset(Dataset):
         if isinstance(jsonl_file, str):
             jsonl_file = [jsonl_file]
         for jf in jsonl_file:
+            # 从 jsonl 文件名推断子目录: OpenVid-1M_all.jsonl -> OpenVid-1M
+            basename = os.path.splitext(os.path.basename(jf))[0]  # e.g. "OpenVid-1M_all"
+            sub_dir = basename.replace("_all", "")                # e.g. "OpenVid-1M"
             with open(jf, 'r', encoding='utf-8') as f:
                 for line in f:
                     try:
                         record = json.loads(line.strip())
                         if record.get("label") == "yes":
+                            record["_sub_dir"] = sub_dir
                             self.data.append(record)
                     except json.JSONDecodeError:
                         continue
@@ -92,12 +96,13 @@ class DragDataset(Dataset):
         record = self.data[idx]
         rel_folder = record["folder"]
         stride = record["stride"]
-        folder_abs = os.path.join(self.root_dir, rel_folder)
+        sub_dir = record.get("_sub_dir", "")
+        folder_abs = os.path.join(self.root_dir, sub_dir, rel_folder)
 
         # 优先从 src_points/tgt_points 字段读 npy
         if "src_points" in record and "tgt_points" in record:
-            pred_track_path1 = os.path.join(self.root_dir, record["src_points"])
-            pred_track_path2 = os.path.join(self.root_dir, record["tgt_points"])
+            pred_track_path1 = os.path.join(self.root_dir, sub_dir, record["src_points"])
+            pred_track_path2 = os.path.join(self.root_dir, sub_dir, record["tgt_points"])
         else:
             # fallback: 从 pair 文件名推断
             rel_path1, rel_path2 = record["pair"]
