@@ -1,1 +1,0 @@
-Drag the image according to the given points mapping embeddings.
