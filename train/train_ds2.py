@@ -32,7 +32,6 @@ from transformers import (
 from safetensors.torch import save_file, load_file
 import shutil
 from utils.infer_utils import _encode_prompt_with_clip, _encode_prompt_with_t5
-import os
 import math
 from module.point import PointsMapEncoder
 import json
@@ -319,7 +318,7 @@ def main():
     weight_dtype = torch.bfloat16 if accelerator.mixed_precision == "bf16" else torch.float32
     for epoch in range(num_epochs):
         for step, batch in enumerate(dataloader):
-            with accelerator.accumulate(dit):
+            with accelerator.accumulate(model):
                 
                 src_images = batch["input_image"].to(accelerator.device)
                 tgt_images = batch["target_image"].to(accelerator.device)
@@ -444,15 +443,16 @@ def main():
                                     removing_checkpoint = os.path.join(ARGS.output_dir, removing_checkpoint)
                                     shutil.rmtree(removing_checkpoint)
 
-                        unwrapped_model_state = accelerator.unwrap_model(dit).state_dict()
-                        lora_state_dict = {"transformer." + k: unwrapped_model_state[k] for k in unwrapped_model_state.keys() if 'lora' in k or 'points' in k}
+                        unwrapped_model = accelerator.unwrap_model(model)
+                        unwrapped_dit_state = unwrapped_model.dit.state_dict()
+                        lora_state_dict = {"transformer." + k: unwrapped_dit_state[k] for k in unwrapped_dit_state.keys() if 'lora' in k or 'points' in k}
                         save_file(
                             lora_state_dict,
                             os.path.join(save_path, "lora.safetensors")
                         )
                         logger.info(f"Saved state to {save_path}")
 
-                        unwrapped_model_state = accelerator.unwrap_model(points_map_encoder).state_dict()
+                        unwrapped_model_state = unwrapped_model.points_map_encoder.state_dict()
                         save_file(
                             unwrapped_model_state,
                             os.path.join(save_path, "points_map_encoder.safetensors")
