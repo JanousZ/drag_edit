@@ -160,7 +160,8 @@ class DragBenchDataset(Dataset):
     - transform: optional callable applied to PIL.Image
     - return_paths: if True, include file paths in returned dict
     """
-    def __init__(self, root_dir, bench_type='both', transform=None, return_paths=False, target_size=512):
+    def __init__(self, root_dir, bench_type='both', transform=None, return_paths=False, target_size=512,
+                 annotation_variant="meta_data.pkl", only_annotated=False, fallback_to_default=True):
         if isinstance(bench_type, str):
             bench_type = [bench_type]
         bench_type = set(x.lower() for x in bench_type)
@@ -173,6 +174,9 @@ class DragBenchDataset(Dataset):
         self.return_paths = return_paths
         self.samples = []  # list of dicts: {sample_dir, bench_type, category}
         self.target_size = int(target_size)
+        self.annotation_variant = annotation_variant
+        self.only_annotated = bool(only_annotated)
+        self.fallback_to_default = bool(fallback_to_default)
 
         if 'dr' in bench_type:
             dr_root = os.path.join(root_dir, 'dragbench-dr')
@@ -202,8 +206,15 @@ class DragBenchDataset(Dataset):
                             'category': None
                         })
 
+        if self.only_annotated and self.annotation_variant:
+            self.samples = [
+                s for s in self.samples
+                if os.path.exists(os.path.join(s['sample_dir'], self.annotation_variant))
+            ]
+
         if len(self.samples) == 0:
-            raise ValueError(f"No samples found under {root_dir} for types {bench_type}")
+            raise ValueError(f"No samples found under {root_dir} for types {bench_type}"
+                             + (f" with variant '{self.annotation_variant}'" if self.only_annotated else ""))
 
     def __len__(self):
         return len(self.samples)
@@ -294,7 +305,9 @@ class DragBenchDataset(Dataset):
 
         orig_path = os.path.join(sample_dir, "original_image.png")
         user_drag_path = os.path.join(sample_dir, "user_drag.png")
-        meta_path = os.path.join(sample_dir, "meta_data.pkl")
+        meta_path = os.path.join(sample_dir, self.annotation_variant)
+        if not os.path.exists(meta_path) and self.fallback_to_default:
+            meta_path = os.path.join(sample_dir, "meta_data.pkl")
 
         original_image = self._open_image(orig_path)
         user_drag = self._open_image(user_drag_path)

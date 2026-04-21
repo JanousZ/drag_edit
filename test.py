@@ -113,6 +113,12 @@ def main():
     parser.add_argument("--dataset_type", type=str, default="drag", choices=["drag", "dragbench"],
                         help="Dataset type: 'drag' for DragDataset, 'dragbench' for DragBenchDataset")
     parser.add_argument("--dragbench_root", type=str, default="/mnt/disk1/datasets/DragBench")
+    parser.add_argument("--annotation_variant", type=str, default="meta_data.pkl",
+                        help="meta file name inside each sample dir; use e.g. meta_data_multi.pkl to switch to manual multi-point annotation")
+    parser.add_argument("--only_annotated", action="store_true",
+                        help="only iterate over samples that have the specified annotation_variant file")
+    parser.add_argument("--reverse_direction", action="store_true",
+                        help="(drag dataset only) swap src<->tgt image & points to evaluate backward drag prediction")
     parser.add_argument("--augment_points", action="store_true", help="Enable nearby point augmentation")
     parser.add_argument("--augment_radius", type=int, default=5, help="Radius to sample nearby points")
     parser.add_argument("--augment_num", type=int, default=2, help="Number of nearby points per original point")
@@ -146,6 +152,8 @@ def main():
                 set_module_tensor_to_device(dit, name, device="cuda", value=safe_data)
 
         missing, unexpected = dit.load_state_dict(edit_lora_dict_2, strict=False)
+        # print(f"Missing keys when loading LoRA weights: {missing}")
+        print(f"Unexpected keys when loading LoRA weights: {unexpected}")
     else:
         pass
 
@@ -160,38 +168,55 @@ def main():
     encoder_state_dict = load_file(encoder_path)
     encoder_state_dict = {k: v.to(torch.bfloat16) for k, v in encoder_state_dict.items()}
     missing, unexpected = points_map_encoder.load_state_dict(encoder_state_dict)
+    print(f"Missing keys when loading points map encoder: {missing}")
+    print(f"Unexpected keys when loading points map encoder: {unexpected}")
     points_map_encoder.eval()
     points_map_encoder = points_map_encoder.to("cuda")
 
     # 加载数据
     if args.dataset_type == "drag":
-        dataset = DragDataset(jsonl_file=args.dataset_jsonl)
+        dataset = DragDataset(jsonl_file=args.dataset_jsonl, root_dir="/mnt/disk1/datasets/drag_data/selectframe")
     elif args.dataset_type == "dragbench":
-        dataset = DragBenchDataset(root_dir=args.dragbench_root)
-    
+        dataset = DragBenchDataset(
+            root_dir=args.dragbench_root,
+            annotation_variant=args.annotation_variant,
+            only_annotated=args.only_annotated,
+        )
+        print(f"[DragBench] variant='{args.annotation_variant}' only_annotated={args.only_annotated} samples={len(dataset)}")
+
+    reverse = bool(args.reverse_direction and args.dataset_type == "drag")
+    if args.reverse_direction and not reverse:
+        print("[warn] --reverse_direction only applies to --dataset_type drag; ignored.")
+    if reverse:
+        print("[drag] reverse_direction=True: swapping src<->tgt (image + points) for backward eval")
+
     for i in range(len(dataset)):
-        output_dir = os.path.join(args.output_dir, f"{i}")
-        os.makedirs(output_dir, exist_ok=True)
+        output_dir = args.output_dir
+        prefix = f"{i:04d}_"
         data = dataset[i]
 
         if args.dataset_type == "drag":
             # DragDataset returns tensors [-1, 1], convert to PIL
             src_image = tensor_to_Image(data["input_image"])
             tgt_image = tensor_to_Image(data["target_image"])
+            if reverse:
+                src_image, tgt_image = tgt_image, src_image
         else:
             # DragBenchDataset returns PIL images directly, no target_image key
             src_image = data["input_image"]
             tgt_image = data.get("user_drag", None)
 
         if tgt_image is not None:
-            tgt_image.save(os.path.join(output_dir, "gt.jpg"))
+            tgt_image.save(os.path.join(output_dir, f"{prefix}gt.jpg"))
 
-        with open(os.path.join(output_dir, "instruction.txt"), "w") as f:
-            f.write("Drag the image according to the given points mapping embeddings.")
+        # with open(os.path.join(output_dir, f"{prefix}instruction.txt"), "w") as f:
+        #     f.write("Drag the image according to the given points mapping embeddings.")
 
         # get points_emb
         src_points_np = data["src_points"]
         tgt_points_np = data["tgt_points"]
+        if reverse:
+            src_points_np, tgt_points_np = tgt_points_np, src_points_np
         if isinstance(src_points_np, torch.Tensor):
             src_points_np = src_points_np.numpy()
         if isinstance(tgt_points_np, torch.Tensor):
@@ -238,10 +263,10 @@ def main():
             points_emb=points_emb.to(torch.bfloat16),
             _auto_resize=False,
         ).images[0]
-        save_name = os.path.join(output_dir, "tgt.jpg" if args.use_lora else "tgt_no_lora.jpg")
+        save_name = os.path.join(output_dir, f"{prefix}" + ("tgt.jpg" if args.use_lora else "tgt_no_lora.jpg"))
         #image.save(save_name)
-    
-        visualize_drag_points(src_image, image, src_points.squeeze(0), tgt_points.squeeze(0), os.path.join(output_dir,"compare.jpg"))
+
+        visualize_drag_points(src_image, image, src_points.squeeze(0), tgt_points.squeeze(0), os.path.join(output_dir, f"{prefix}compare.jpg"))
 
 if __name__ == "__main__":
     main()

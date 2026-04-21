@@ -1,9 +1,12 @@
 wandb/
-lora_ckpt/
-lora_ckpt_v2.0/
-lora_ckpt_v2.1_/
+lora_ckpt_v3/
+lora_ckpt_v3_1/
 output/
 bench/
 train2.log
-bench_27000/
-bench_27000_2.0/
+bench_v3_1_7500/
+bench_v3_1_7500_multi_only/
+OpenVid-1M/
+OpenVid-1M_rev/
+pexels_tdv2/
+pexels_tdv2_rev/

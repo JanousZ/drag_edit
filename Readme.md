@@ -16,20 +16,56 @@ accelerate launch --config_file ./train/deepspeed.yaml --main_process_port 29607
 ```
 
 ```bash
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=2
 python test.py \
 --use_lora \
---checkpoint_dir "./lora_ckpt/checkpoint-18000" \
+--checkpoint_dir "./lora_ckpt_v3_1/checkpoint-7500" \
 --dataset_type "drag" \
---dataset_jsonl "/home/yanzhang/dragdatasets/paired_frames.jsonl" \
---output_dir "./train_data"
+--dataset_jsonl "/mnt/disk1/datasets/drag_data/train_json/pexels_tdv2_all.jsonl" \
+--reverse_direction \
+--output_dir "./pexels_tdv2_rev"
 
 python test.py \
 --use_lora \
---checkpoint_dir "./lora_ckpt/checkpoint-18000" \
+--checkpoint_dir "./lora_ckpt_v3_1/checkpoint-7500" \
+--dataset_type "drag" \
+--dataset_jsonl "/mnt/disk1/datasets/drag_data/train_json/OpenVid-1M_all.jsonl" \
+--reverse_direction \
+--output_dir "./OpenVid-1M_rev"
+
+python test.py \
+--use_lora \
+--checkpoint_dir "./lora_ckpt_v3_1/checkpoint-7500" \
 --dataset_type "dragbench" \
---output_dir "./bench_27000_2.0"
+--output_dir "./bench_v3_1_7500"
+
+# 用你手标的多点版本；没标到的样本会 fallback 到原 meta_data.pkl
+python test.py --use_lora \
+  --checkpoint_dir ./lora_ckpt_v3_1/checkpoint-7500 \
+  --dataset_type dragbench \
+  --annotation_variant meta_data_multi.pkl \
+  --output_dir ./bench_v3_1_7500_multi
+
+# 只跑你标过的（严格对照集，不 fallback）
+python test.py --use_lora \
+  --checkpoint_dir ./lora_ckpt_v3_1/checkpoint-7500 \
+  --dataset_type dragbench \
+  --annotation_variant meta_data_multi.pkl \
+  --only_annotated \
+  --output_dir ./bench_v3_1_7500_multi_only
+
+python annotate_multipoints_web.py --only_missing
+# 操作（窗口激活时）：
+# 左键：依次放点，红色 src → 绿色 tgt 循环
+# 右键：撤销最后一个点（含未完成的 pending src）
+# c：清空当前样本所有新点
+# r：把原始 meta_data.pkl 的点复制进来当起点
+# s：保存当前 sidecar
+# n / →：保存后下一张；p / ←：保存后上一张；k：丢弃改动后下一张
+# q / Esc：保存后退出
 ```
+
+
 
 #异步错误处理
 当一个 GPU 节点发生 NCCL 错误时，其他节点能及时收到通知并优雅退出，而不是一直死等（卡死）。它让错误日志更清晰。
@@ -218,11 +254,215 @@ v2.1版本
 修改scale为1.0，并调节为可训练
 破案了，在test.py导入模型时*0.01了，无语死了！所以重新训练！
 
+v3版本
+主要是针对v2.0版本，修改了训练数据。可以从dragbench看到，对于扭头这类的数据比较敏感，容易成功，以及微旋操作也是，但是其余很多badcase。
+
+1.颜色，对比度明显发生变化
+2.很多拉长、缩短、边缘形变等操作几乎无反应，或者是容易被识别成基于平移的drag
+并且2无反应时通常伴随着1
+3.不知道什么时候是拉长缩短，对drag语义可能不明晰
+4.范围问题，有时候产生联动效应，例如变窄的同时也变短了，本来是局部的变化会扩散到全局
+5.很容易发成重叠错误，例如当一条腿移动到另外一条腿附近时，直接合并成一条腿，又或者把两个东西平移到一起，直接撞混
+
+考虑：
+1.可能是数据集都是8个点训练，而dragbench是1到2个点的标注
+2.可能是数据中比较缺少对拉长、缩短、边缘形变这类的数据，并且过拟合于现有数据集
+
+Claude Code回答：
+1.训练分布是"视频共动"，而非"局部编辑"。8 个跟踪点几乎总是一起运动（刚体/半刚体），disp_mean_ratio 中位 0.087、最大 0.47，说明主要是扭头、整体位移。模型学到的是"给我一组共动方向，我生成一张整体被搬运的帧"。所以 bench 的 1~2 点局部拉伸/缩短/形变会被解读成平移，并伴随全局联动（问题 2、4）。
+2.点数与语义的 train-test 偏差。训练固定 8 点、值 1..8；bench 1~2 点、值只有 1..2。integer_index 用 scalar 值表达"第几号点"的身份，经 3 次 stride conv 后身份信号极弱（v2 时打印 Ratio ≈0.39%）；且"序号 i 的点到序号 i 的点"的配对只能靠位置临近 + 标量值暗示，encoder 需硬背这种对齐。点数越少，信号越稀，模型越会退化成"看图下手"。
+3.训练/推理 prompt 不一致。train_ds2.py:330 训练用 ""，test.py:238 推理用 "Drag the image..."，CLIP/T5 嵌入完全不同，Kontext 的文本通路在推理时进了一条没训过的条件，很可能贡献了"颜色/对比度整体漂移"（问题 1）。
+4.ROI 裁剪总是把"运动区"放满画面。dragdataset.py:45-58 让 base_side 覆盖所有点的 bbox，点始终占画面很大比例；bench 里点簇经常是局部小区域，分布从未在训练中出现。
+5.帧间曝光/压缩漂移成了"监督"的一部分。两个真实视频帧天然有 AWB、曝光、JPEG 噪声差，模型被迫把这当作"denoise 过程中应当产生的颜色变化"，和问题 1 吻合。
+6.Loss 全图均匀 MSE。没有对 drag 邻域加权，模型通过"大面积保持 + 局部模糊"就能拿到低 loss，不会被逼去精确对齐点位；这又造成"点附近物体撞一起就融合"（问题 5）。
+7.单层、弱强度注入。points_emb*2.0 在输入处加一次，之后 57 个 block 没有再注入，很容易在深层被图像先验压制——这和你在 Readme 提到的"多层注入"猜想一致。
+
+验证方法
+1.点数消融：从同一条训练样本里随机取 k∈{1,2,3,8} 个点训练或推理同一 ckpt，画 bench 成功率 vs k。若 k=1,2 明显崩，说明 integer_index + 8 点过拟合是主因。
+2.prompt 消融：推理时把 prompt 换成 ""（和训练一致），看问题 1 的色偏是否消失/大幅缓解。
+3.单样本过拟合：挑一个 bench 的"拉长"样本做 500~1000 step 纯过拟合。学得动 ⇒ 是数据问题；学不动 ⇒ 是 encoding/注入 架构问题。
+4.流场散度统计：对训练集 8 点计算位移的散度/尺度变化量（||tgt-src|| 的方差、bbox 面积比），对比 DragBench 分布。我预期训练分布几乎为零散度，bench 是长尾。
+5.Encoder probe：固定一张图，画 1 点 vs 8 点输入下 points_emb 的空间 norm 图，观察稀疏点是否在编码后仍能定位。
+6.Norm 监控：训练时继续打印 Ratio(Pts/Img)，看 v3 是否又退回到 ~0.4%。
+7.Mask region loss 可视化：把 loss 空间分解成"点 5×5 邻域 vs 其他"，观察两者在训练后期是否都收敛——通常邻域 loss 会显著高于平均。
+
+解决方向（按投入产出排序）
+1.统一训推 prompt（1 行改动）——先消掉色偏基线。
+2.随机点数 + 随机顺序训练：每步从 8 点里采 k∈[1,8] 和随机索引顺序；破掉"总是 8 点、固定排号"的过拟合，贴近 bench 分布。
+3.换掉 integer_index：改用双通道（或多通道）Gaussian heatmap，src 和 tgt 各自一层；或直接渲染成稀疏光流图 (Δx, Δy) 两通道。这同时4.解决身份与配对歧义（README 已提"流场编码"方向）。
+引入非刚体合成数据：对静态图施加 TPS / 薄板样条形变生成 (原图, 形变图, 稀疏锚点) 三元组；或用现成 DragDiffusion/DragonDiffusion 合成 pseudo-pair。这直接补齐"拉长、缩短、边缘形变"的数据缺口（你的猜想 2 成立）。
+5.mask-weighted flow loss：在 drag 点周围一个 soft disk 内把 MSE 权重提高 5~10×，逼模型优先对齐点位。
+6.多层注入：把 points_emb 同时加到前 N 个 FluxTransformerBlock 的输入或 temb modulation 上（或做一个 zero-init adapter）；README 提到的多层注入方向。
+7.裁剪策略多样化：训练时加入"ROI 远大于点 bbox"的采样，让模型见过点只占画面小区域的样本，缓解 bench 局部 drag 的分布外问题。
+8.帧对筛选：优先选相邻帧 + 强制曝光/色彩一致性（或先做直方图匹配再进数据集），去掉"视频色偏当监督"的副作用。
+建议落地顺序：先做 1、2、3（都不用扩数据），用 bench 拉长/缩短子集做 A/B；若仍不动再做 4（合成数据）和 6（多层注入）。
+
+新的主要怀疑
+点位在 encoder 里就丢了身份。integer_index 把点写成标量值 1..N，但 PointsMapEncoder 第一层 ResNet 的 GroupNorm 会把稀疏标量的绝对幅值做空间归一（均值/方差），1..8 的"序号差异"大概率在 norm 后近似一致 → 模型没办法靠值识别"第几号点"。训练集也表现差，正好说明"靠序号配对"这条路本来就没走通。
+
+src 与 tgt 没有真正配对。train_ds2.py:71-82 把 src、tgt 放进 2*B 批里独立过同一个 encoder，再在 sequence 维拼接。encoder 输出里并不显式包含"src 的 i 号点 → tgt 的 i 号点"这条边，只能靠 57 层 DiT attention 自己摸配对——对共动样本容易学，对拉伸/缩放/镜像这种强非刚体就崩。
+
+点信号对视频帧对而言是冗余的。两帧连拍图本来就能被 Flux-Kontext 先验直接预测出第二帧（运动模糊/姿态/相机漂移都能脑补），点位 embedding 几乎不用看也能让 loss 下降。所以训练 loss 是低的，但模型并没有真正依赖点——这就解释了为什么训练集样本推理出来也乱：点被学成了"可有可无的装饰"。
+
+验证：拿已训好的 v3，推理时把 points 随机打乱 / 全清零，看输出是否几乎不变。若几乎不变，就坐实这个假设。
+注入太浅、太弱。points_emb * 2.0 只加在 x_embedder 的输出上，后面没有再次注入；v2 打印里 Ratio 约 0.4%。深层 blocks 很容易把它淹没。
+
+全图 MSE 的"背景免费奖励"。视频帧对大多数像素都基本没动，模型只要把背景 copy-paste 就能拿到 90% 的 loss，点邻域是否对齐对总 loss 几乎无影响。训练信号对 drag 本身极度不敏感。
+
+颜色/对比度漂移来自训练分布本身。训练的 tgt 是视频下一帧，天然带 AWB/曝光/压缩漂移；LoRA 把这条"每步轻微调色"的映射学了进去，所以所有输出都带色偏。不是 prompt 问题。
+
+重叠/撞一起是 (1)+(2) 的直接后果：无法区分两个点身份时，近邻点就会被 attention 当成同一个目标，位置平均，物体合并。
+
+可以做的验证（低成本、排他性强）
+点扰动实验：同一 ckpt 同一样本，把 points 随机打乱顺序、整体平移、或全部置零，对比输出差异。差异很小 ⇒ 模型没用点（坐实第 3 点）。
+identity 实验：src_points 与 tgt_points 设为完全相同，期望应输出 src 本身。若输出仍变化/色偏，说明 LoRA 自带 shift（第 6 点）。
+encoder 探针：构造一张 1 点 map 和 8 点 map，打印每一层输出的空间 norm 分布。如果 ResNet 后点位的峰值相对背景不超过 2~3×，身份信号基本没了。
+loss 分解：把 loss 拆成"点 5×5 邻域 vs 其他"，看训练后期邻域 loss 是否下降很慢或根本不下降。
+关掉 VAE shift：对比 "相同 ckpt, 关掉点条件" vs "正常推理"，颜色/对比差是否一致 → 判断色偏来源是 VAE-LoRA 还是点路径。
+修复建议（针对"训练集自己也崩"这个结论）
+按收益顺序：
+
+换编码：双通道 / 多通道 heatmap + 带身份通道。推荐把一张 integer-index 图拆成：
+
+C0 = src Gaussian heatmap（σ≈2~4 px）
+C1 = tgt Gaussian heatmap
+C2, C3 = 每像素的 (Δx, Δy) 稀疏光流，仅在 src 点位置非零 这样 GroupNorm 不会吃掉身份，且 src↔tgt 的配对天然在一张图里，attention 不用自己猜。
+把 src 和 tgt 拼成一张图过 encoder（不是 2*B 独立过）。例如直接在通道维拼，把"谁对谁"变成局部卷积可学的模式。
+
+强化 loss on drag 邻域：在 latent 空间对应 drag 点周围做 soft mask，损失加权 5~10×，强迫模型关心点对齐。
+
+训练数据补非刚体样本：TPS/薄板样条合成 + 现有 drag 方法蒸馏，哪怕只占 20%，都能把"形状变化"这条支路激活。
+
+多层注入 + 可学 scale：把 points_emb 以 zero-init adapter 形式加到前 10~20 个 DiT block 的 temb 或 hidden_states modulation，避免单点注入被深层淹没。
+
+帧对预处理去色偏：直方图匹配 tgt→src，或者从训练对里剔除曝光差异超过阈值的样本；从根上断掉"学会调色"的捷径。
+
+prompt 固定为训练时的空串：这是老问题，顺手改掉。
+
+有没有可能我把src point，以及tgt point，四个坐标提取傅里叶embedding，然后作为一个token，专门出一个类似attention层训练？
+
+这是一个非常有深度且完全符合当前生成模型研究前沿（Sparse Control）的思路。将点对（Point Pairs）编码为 Token 并注入 Attention 层，本质上是将“几何控制”转化为“语义交互”问题，这比使用 ControlNet 进行像素级干扰要优雅得多，且计算代价更小。
+
+你的方案在学术上被称为 Point-Conditioned Transformer 或 Sparse Control Tokens。以下是该架构设计的关键要点和潜在的改进方向：
+
+1. 架构方案建议：将点对转化为“动态控制指令”
+不要将其仅仅视为位置信息，而应将其视为**“风格迁移指令”**。
+
+A. Embedding 策略
+傅里叶编码 (Fourier Embeddings)：这是处理坐标信息的标准做法。你提到的对 4 个坐标（x 
+s
+​
+ ,y 
+s
+​
+ ,x 
+t
+​
+ ,y 
+t
+​
+ ）分别编码是正确的。
+
+Token 的构成：
+
+建议不要简单的拼接。最好的做法是：
+
+Embed_s = MLP(Fourier(x_s, y_s))
+
+Embed_t = MLP(Fourier(x_t, y_t))
+
+Token_i = Embed_s + Embed_t + Relative_Vector(x_t-x_s, y_t-y_s)
+
+关键创新点：引入“相对位移矢量”的 Embedding。这对 Drag 任务至关重要，它直接告诉模型运动的方向和幅度。
+
+B. 注入方式（Attention 层设计）
+你并不需要从零训练一个 Attention 层。复用原有的 Cross-Attention 层是最高效的：
+
+Token 级联：将这组 N 个点对的 Tokens 直接拼接到原本的 Text_Embeddings 之后。
+
+修改 Cross-Attention：
+
+原本：Attention(Q=Image, K=Text, V=Text)
+
+改良：Attention(Q=Image, K=[Text, Points], V=[Text, Points])
+
+效果：模型在计算注意力时，图像特征会同时“关注”文本 Prompt 和这些几何点对。当它看到一个点对 Token 时，它会产生“在这里发生特征变化”的响应。
+
+2. 为什么你的这个思路能破解“Style Edit”难题？
+目前你遇到的最大瓶颈是：只有点对，没有语义。通过将“Style”注入到 Token 中，你可以打破这个限制：
+
+核心建议：特征提取器注入（Feature Injection）
+在将点对转化为 Token 时，不要只输入坐标。同时输入该坐标点的“局部视觉特征”。
+
+具体做法：
+
+在 P 
+s
+​
+  处，从 U-Net 的中间层提取特征向量 F 
+source
+​
+ 。
+
+将 F 
+source
+​
+  与你的傅里叶坐标编码拼接，一起投射为 Point Token。
+
+这样，你的 Token 就变成了：[坐标信息] + [纹理/颜色信息]。
+
+结果：Token 不再仅仅说“我要在这里动”，它是在说“把这个纹理搬到那边去”。这就实现了 Style Edit 的核心逻辑。
+
+3. 需要攻克的工程细节
+变长输入（Variable N）：
+
+因为 Drag 的点对数量不固定（可能是 1 对，也可能是 10 对），你需要设置一个 Max_Tokens（例如 20）。不足的填入 Padding_Token，并在 Attention Mask 中遮盖掉 Padding 部分。
+
+位置对齐的“软”处理：
+
+训练时，单纯让模型通过 Token 对齐可能很难收敛。建议添加一个辅助 Loss：Feature Similarity Loss。
+
+在训练阶段，强制要求 P 
+t
+​
+  处的生成特征与 P 
+s
+​
+  处的输入特征在语义空间上保持一致。
+
+4. 与“ControlNet”或“高斯热图”相比的优势
+模型权重（Weights）更轻：不需要像 ControlNet 那样复制整个 U-Net 权重，只需训练一个轻量的 MLP 映射层和几层交叉注意力层，显存占用极低。
+
+稀疏性更友好：对于稀疏点，Attention 机制天生比 CNN 卷积更敏感，能够精准定位，不会像卷积那样造成“全局扩散”导致背景被误改。
+
+给你的实验建议
+Sanity Check：先不要训练整个 Diffusion 模型。写一个简单的 Attention Block，输入随机的 Point Tokens，看它是否能通过 Cross-Attention 将图像特征“引导”到特定的位置。
+
+可视化注意力图 (Attention Maps)：这是你论文的核心论据。训练后，把 Cross-Attention 的 Heatmap 画出来，看模型是否真的在处理点对 P 
+t
+​
+  时，将注意力集中在了 P 
+s
+​
+  的区域。如果它是这么做的，你证明了模型确实学会了“根据点对进行风格对齐”。
+
 ## 后续优化
 数据集收集
-方法改进
-：多层注入
-：傅里叶嵌入编码
-：从分开编码 -> 流畅流场编码
+1.注意按类别分门别类
+观察现在在哪些类别做得好/不好，然后针对性扩充
+2.短程drag数据
+3.少点标注数据
 
-应该是流场构建和流场选择问题
+方法改进
+1.只改编码方式：
+1-N序号填充 -> 高斯填充 + 位移填充（3通道）  v4
+
+2.是否需要points encoder
+points encoder v3
+只有下采样的伪points encoder v3.1
+
+3.将src points、tgt points经过傅里叶编码，合为N个token，N为pair组数，拼接在text后面  v5
+  找到一个token，使得对目标点和源点注意力剧增
+
+4.lora参数修改问题，ff.net.0, ff.net.2  v3.2
+
