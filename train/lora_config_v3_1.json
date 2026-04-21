@@ -1,0 +1,6 @@
+{
+    "r": 32,
+    "lora_alpha": 32,
+    "target_modules": ["to_q", "to_v", "to_k", "to_out.0", "conv_in", "conv_out", "ff.net.0.proj", "ff.net.2"],
+    "lora_dropout": 0.05
+}

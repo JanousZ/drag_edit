@@ -104,8 +104,7 @@ def parse_args():
         default="/mnt/disk1/models/FLUX.1-Kontext-dev", 
         help="Path to the FLUX.1-Kontext editing."
     )
-    parser.add_argument("--lora_rank", type=int, default=32)
-    parser.add_argument("--lora_alpha", type=float, default=32)
+    parser.add_argument("--lora_config", type=str, default=None, help="Path to the JSON config file")
     parser.add_argument("--num_epochs", type=int, default=10)
     parser.add_argument("--output_dir", type=str, default="./lora_ckpt")
     parser.add_argument("--logging_dir", type=str, default="logs")
@@ -244,11 +243,9 @@ def main():
     model.dit.enable_gradient_checkpointing()
     
     # 注入 LoRA 层, 先开lora，后开其他层
-    lora_rank = ARGS.lora_rank
-    lora_alpha = ARGS.lora_alpha
-    lora_config = LoraConfig(
-        r=lora_rank, lora_alpha=lora_alpha, target_modules=["to_q", "to_v", "to_k", "to_out.0"], lora_dropout=0.05
-    )
+    with open(ARGS.lora_config, "r", encoding="utf-8") as f:
+        lora_config_dict = json.load(f)
+    lora_config = LoraConfig(**lora_config_dict)
     model.dit.add_adapter(lora_config, adapter_name="edit")
     model.dit.points_embedder.requires_grad_(True)
 

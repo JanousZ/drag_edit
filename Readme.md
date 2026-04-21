@@ -455,14 +455,13 @@ s
 
 方法改进
 1.只改编码方式：
-1-N序号填充 -> 高斯填充 + 位移填充（3通道）  v4
+1-N序号填充 -> 高斯填充 + 位移填充（3通道） v4
 
 2.是否需要points encoder
 points encoder v3
-只有下采样的伪points encoder v3.1
+只有下采样的伪points encoder v3.2
 
 3.将src points、tgt points经过傅里叶编码，合为N个token，N为pair组数，拼接在text后面  v5
   找到一个token，使得对目标点和源点注意力剧增
 
-4.lora参数修改问题，ff.net.0, ff.net.2  v3.2
-
+4.lora参数修改问题，ff.net.0, ff.net.2  v3.1
