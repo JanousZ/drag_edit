@@ -319,7 +319,7 @@ class FluxTransformer2DPointsModel(
                 img_peak = torch.gather(hidden_states.norm(dim=-1), 1, topk_indices).mean()
                 print(f"核心点位能量占比 (Peak Ratio): {pts_peak / img_peak:.2%}")
 
-            hidden_states = hidden_states + points_emb * 2.0
+            hidden_states = hidden_states + points_emb
 
         timestep = timestep.to(hidden_states.dtype) * 1000
         if guidance is not None:
