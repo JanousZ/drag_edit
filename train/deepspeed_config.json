@@ -13,7 +13,7 @@
         "reduce_bucket_size": 2e8,
         "allgather_bucket_size": 2e8
     },
-    "gradient_accumulation_steps": 1,
+    "gradient_accumulation_steps": 4,
     "gradient_clipping": 1.0,
     "steps_per_print": 2000,
     "train_batch_size": "auto",

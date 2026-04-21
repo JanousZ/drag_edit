@@ -10,9 +10,10 @@ cd Kontext_train_ds2
 accelerate launch --config_file ./train/deepspeed.yaml --main_process_port 29607 ./train/train_ds2.py \
     --num_epochs 50 \
     --lr 1e-4 \
-    --save_steps 500 \
-    --output_dir lora_ckpt_v3\
-    > train3.log 2>&1
+    --save_steps 1000 \
+    --output_dir lora_ckpt_v3_1 \
+    --lora_config ./train/lora_config_v3_1.json \
+    > train.log 2>&1
 ```
 
 ```bash
